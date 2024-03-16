@@ -2,14 +2,17 @@ package com.example.customlauncher.core.database.model
 
 
 import android.graphics.Bitmap
-import android.graphics.drawable.Drawable
 import androidx.annotation.DrawableRes
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.example.customlauncher.core.model.Application.*
-import com.example.customlauncher.core.util.asBitmap
+import com.example.customlauncher.core.model.Application.CompanyApp
+import com.example.customlauncher.core.model.Application.UserApp
 
-@Entity(tableName = "Application")
+@Entity(
+    tableName = "Application",
+    indices = [Index("packageName", unique = true)]
+)
 data class ApplicationEntity(
     val name: String,
     val type: ApplicationType,
@@ -20,7 +23,7 @@ data class ApplicationEntity(
     val iconId: Int? = null,
 
     @PrimaryKey(autoGenerate = true)
-    val orderNumber: Int = 0,
+    val id: Long = 0,
 )
 
 enum class ApplicationType { USER, COMPANY }
@@ -38,6 +41,3 @@ fun ApplicationEntity.asUserApp(icon: Bitmap?): UserApp? = icon?.let {
         version = version!!
     )
 }
-
-
-
