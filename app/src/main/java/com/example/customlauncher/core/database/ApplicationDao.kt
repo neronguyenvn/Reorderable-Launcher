@@ -1,21 +1,23 @@
 package com.example.customlauncher.core.database
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Query
 import androidx.room.Upsert
-import com.example.customlauncher.core.database.model.ApplicationEntity
+import com.example.customlauncher.core.database.model.UserAppEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ApplicationDao {
 
-    @Query("SELECT * FROM Application")
-    fun observeAll(): Flow<List<ApplicationEntity>>
+    @Query("SELECT * FROM UserApp")
+    fun observeAll(): Flow<List<UserAppEntity>>
 
     @Upsert
-    suspend fun upsert(applicationEntity: ApplicationEntity)
+    suspend fun upsert(applicationEntity: UserAppEntity)
 
-    @Delete
-    suspend fun delete(applicationEntity: ApplicationEntity)
+    @Query("SELECT * FROM UserApp WHERE packageName = :packageName")
+    suspend fun getByPackageName(packageName: String): UserAppEntity?
+
+    @Query("DELETE FROM UserApp WHERE packageName NOT IN (:packages)")
+    suspend fun deleteUninstalledUserApp(packages: List<String>)
 }

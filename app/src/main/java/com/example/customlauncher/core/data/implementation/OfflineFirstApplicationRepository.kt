@@ -3,87 +3,58 @@ package com.example.customlauncher.core.data.implementation
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.pm.ResolveInfo
-import com.example.customlauncher.core.common.coroutine.ClDispatcher.IO
-import com.example.customlauncher.core.common.coroutine.Dispatcher
-import com.example.customlauncher.core.common.coroutine.di.ApplicationScope
+import android.util.Log
 import com.example.customlauncher.core.data.ApplicationRepository
+import com.example.customlauncher.core.data.util.asApplicationEntity
+import com.example.customlauncher.core.data.util.packageName
 import com.example.customlauncher.core.database.ApplicationDao
-import com.example.customlauncher.core.database.model.ApplicationEntity
-import com.example.customlauncher.core.database.model.ApplicationType.COMPANY
-import com.example.customlauncher.core.database.model.ApplicationType.USER
-import com.example.customlauncher.core.database.model.asCompanyApp
 import com.example.customlauncher.core.database.model.asUserApp
+import com.example.customlauncher.core.database.model.isInstalledAndUpToDate
 import com.example.customlauncher.core.model.Application
 import com.example.customlauncher.core.util.asBitmap
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
 
 class OfflineFirstApplicationRepository @Inject constructor(
-    private val applicationDao: ApplicationDao,
+    private val appDao: ApplicationDao,
 
     @ApplicationContext
     private val context: Context,
-
-    @Dispatcher(IO)
-    private val ioDispatcher: CoroutineDispatcher,
-
-    @ApplicationScope
-    private val applicationScope: CoroutineScope,
 ) : ApplicationRepository {
 
-    private val packageManager = context.packageManager
-    private val resolveInfo = packageManager.queryIntentActivities(
-        Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
-        },
-        PackageManager.GET_META_DATA
-    )
+    private val pm = context.packageManager
+    private val resolveInfo
+        get() = pm.queryIntentActivities(
+            Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) },
+            PackageManager.GET_META_DATA
+        ).associateBy { it.packageName }
 
 
     override fun getApplicationsStream(): Flow<List<Application?>> {
-
-        val drawableMap = resolveInfo.associate {
-            it.getPackageName() to it.loadIcon(packageManager)
-        }
-
-        return applicationDao.observeAll().map { list ->
+        return appDao.observeAll().map { list ->
             list.map { entity ->
-                when (entity.type) {
-                    COMPANY -> entity.asCompanyApp()
-                    USER -> {
-                        drawableMap[entity.packageName]?.asBitmap()?.let {
-                            entity.asUserApp(it)
-                        } ?: let {
-                            applicationScope.launch {
-                                applicationDao.delete(entity)
-                            }
-                            null
-                        }
-                    }
-                }
+                entity.asUserApp(resolveInfo[entity.packageName]?.loadIcon(pm)?.asBitmap())
             }
         }
     }
 
+    private val refreshApplicationMutex = Mutex()
+
     override suspend fun refreshApplications() {
-        resolveInfo.map {
-            val packageName = it.activityInfo.packageName
-            applicationDao.upsert(
-                ApplicationEntity(
-                    name = it.loadLabel(packageManager).toString(),
-                    packageName = packageName,
-                    version = packageManager.getPackageInfo(packageName, 0).versionName,
-                    type = USER
-                )
-            )
+        refreshApplicationMutex.lock()
+        val apps = resolveInfo.values.map { it.asApplicationEntity(pm) }
+        for (app in apps) {
+            if (!app.isInstalledAndUpToDate(appDao)) {
+                appDao.upsert(app)
+            } else {
+                Log.d("NERO", "UserApp ${app.packageName} is up to date")
+            }
         }
+        appDao.deleteUninstalledUserApp(apps.map { it.packageName })
+        refreshApplicationMutex.unlock()
     }
 }
 
-fun ResolveInfo.getPackageName(): String = activityInfo.packageName
