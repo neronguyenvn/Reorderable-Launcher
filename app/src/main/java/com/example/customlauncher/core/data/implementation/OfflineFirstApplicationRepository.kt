@@ -9,6 +9,7 @@ import com.example.customlauncher.core.data.util.asApplicationEntity
 import com.example.customlauncher.core.data.util.packageName
 import com.example.customlauncher.core.database.ApplicationDao
 import com.example.customlauncher.core.database.model.asUserApp
+import com.example.customlauncher.core.database.model.canUninstall
 import com.example.customlauncher.core.database.model.isInstalledAndUpToDate
 import com.example.customlauncher.core.model.Application
 import com.example.customlauncher.core.util.asBitmap
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
 
+
 class OfflineFirstApplicationRepository @Inject constructor(
     private val appDao: ApplicationDao,
 
@@ -26,17 +28,20 @@ class OfflineFirstApplicationRepository @Inject constructor(
 ) : ApplicationRepository {
 
     private val pm = context.packageManager
+
     private val resolveInfo
         get() = pm.queryIntentActivities(
             Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) },
             PackageManager.GET_META_DATA
         ).associateBy { it.packageName }
 
-
     override fun getApplicationsStream(): Flow<List<Application?>> {
         return appDao.observeAll().map { list ->
             list.map { entity ->
-                entity.asUserApp(resolveInfo[entity.packageName]?.loadIcon(pm)?.asBitmap())
+                entity.asUserApp(
+                    icon = resolveInfo[entity.packageName]?.loadIcon(pm)?.asBitmap(),
+                    canUninstall = entity.canUninstall(pm)
+                )
             }
         }
     }
@@ -55,6 +60,10 @@ class OfflineFirstApplicationRepository @Inject constructor(
         }
         appDao.deleteUninstalledUserApp(apps.map { it.packageName })
         refreshApplicationMutex.unlock()
+    }
+
+    override suspend fun editName(name: String, userApp: Application.UserApp) {
+        appDao.updateName(name, userApp.packageName)
     }
 }
 

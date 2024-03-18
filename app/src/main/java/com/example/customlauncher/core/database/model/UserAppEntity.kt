@@ -1,6 +1,9 @@
 package com.example.customlauncher.core.database.model
 
 
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
+import android.content.pm.PackageManager.NameNotFoundException
 import android.graphics.Bitmap
 import androidx.room.Entity
 import androidx.room.Index
@@ -20,16 +23,29 @@ data class UserAppEntity(
     val packageName: String
 )
 
-fun UserAppEntity.asUserApp(icon: Bitmap?): UserApp? = icon?.let {
+fun UserAppEntity.asUserApp(
+    icon: Bitmap?,
+    canUninstall: Boolean
+): UserApp? = icon?.let {
     UserApp(
         name = name,
         icon = icon,
         packageName = packageName,
-        version = version
+        version = version,
+        canUninstall = canUninstall
     )
 }
 
 suspend fun UserAppEntity.isInstalledAndUpToDate(dao: ApplicationDao): Boolean {
     val installed = dao.getByPackageName(packageName) ?: return false
     return installed.version == version
+}
+
+fun UserAppEntity.canUninstall(packageManager: PackageManager): Boolean {
+    return try {
+        packageManager.getApplicationInfo(packageName, 0)
+            .flags and ApplicationInfo.FLAG_SYSTEM == 0
+    } catch (e: NameNotFoundException) {
+        false
+    }
 }
