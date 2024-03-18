@@ -19,6 +19,7 @@ data class UserAppEntity(
     val name: String,
     val version: String,
     val usageMillis: Long = 0,
+    val notificationCount: Int = 0,
 
     @PrimaryKey
     val packageName: String
@@ -33,7 +34,8 @@ fun UserAppEntity.asUserApp(
         icon = icon,
         packageName = packageName,
         version = version,
-        canUninstall = canUninstall
+        canUninstall = canUninstall,
+        notificationCount = notificationCount
     )
 }
 

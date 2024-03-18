@@ -26,6 +26,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -176,11 +178,21 @@ private fun UserAppItem(
                 )
                 .padding(vertical = 4.dp),
         ) {
-            AsyncImage(
-                model = imageRequest,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp)
-            )
+            BadgedBox(
+                badge = {
+                    androidx.compose.animation.AnimatedVisibility(app.notificationCount != 0) {
+                        Badge(modifier = Modifier.size(20.dp)) {
+                            Text(text = (app.notificationCount).toString())
+                        }
+                    }
+                },
+            ) {
+                AsyncImage(
+                    model = imageRequest,
+                    contentDescription = null,
+                    modifier = Modifier.size(60.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = app.name, style = MaterialTheme.typography.labelLarge,

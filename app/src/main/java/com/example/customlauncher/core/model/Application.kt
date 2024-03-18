@@ -22,7 +22,8 @@ sealed interface Application {
         val packageName: String,
         val version: String,
         val icon: Bitmap,
-        val canUninstall: Boolean
+        val canUninstall: Boolean,
+        val notificationCount: Int
     ) : Application
 }
 

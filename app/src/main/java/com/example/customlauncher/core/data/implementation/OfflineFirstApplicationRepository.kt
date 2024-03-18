@@ -4,6 +4,7 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.example.customlauncher.core.data.ApplicationRepository
 import com.example.customlauncher.core.data.util.asApplicationEntity
@@ -52,7 +53,6 @@ class OfflineFirstApplicationRepository @Inject constructor(
     }
 
     private val refreshApplicationMutex = Mutex()
-
     override suspend fun refreshApplications() {
         refreshApplicationMutex.lock()
         val apps = resolveInfo.values.map { it.asApplicationEntity(pm) }
@@ -64,6 +64,7 @@ class OfflineFirstApplicationRepository @Inject constructor(
             }
         }
         appDao.deleteUninstalledUserApp(apps.map { it.packageName })
+
         usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_WEEKLY,
             0,
@@ -71,11 +72,21 @@ class OfflineFirstApplicationRepository @Inject constructor(
         ).forEach {
             appDao.updateUsageTime(it.totalTimeInForeground, it.packageName)
         }
+
         refreshApplicationMutex.unlock()
     }
 
     override suspend fun editName(name: String, userApp: Application.UserApp) {
         appDao.updateName(name, userApp.packageName)
+    }
+
+    private val handleNotificationsMutex = Mutex()
+    override suspend fun handleNotifications(notifications: List<StatusBarNotification>) {
+        handleNotificationsMutex.lock()
+        appDao.unsetAllNotificationCount()
+        notifications.groupingBy { it.packageName }.eachCount()
+            .forEach { appDao.updateNotificationCount(it.value, it.key) }
+        handleNotificationsMutex.unlock()
     }
 }
 
