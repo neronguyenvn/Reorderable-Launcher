@@ -23,4 +23,7 @@ interface ApplicationDao {
 
     @Query("UPDATE UserApp SET name = :name WHERE packageName = :packageName")
     suspend fun updateName(name: String, packageName: String)
+
+    @Query("UPDATE userapp SET usageMillis = :usageTimeMillis WHERE packageName = :packageName")
+    suspend fun updateUsageTime(usageTimeMillis: Long, packageName: String)
 }

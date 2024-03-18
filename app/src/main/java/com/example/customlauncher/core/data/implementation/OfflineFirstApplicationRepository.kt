@@ -1,5 +1,6 @@
 package com.example.customlauncher.core.data.implementation
 
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -24,7 +25,7 @@ class OfflineFirstApplicationRepository @Inject constructor(
     private val appDao: ApplicationDao,
 
     @ApplicationContext
-    private val context: Context,
+    private val context: Context
 ) : ApplicationRepository {
 
     private val pm = context.packageManager
@@ -34,6 +35,10 @@ class OfflineFirstApplicationRepository @Inject constructor(
             Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) },
             PackageManager.GET_META_DATA
         ).associateBy { it.packageName }
+
+    private val usageStatsManager =
+        context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+
 
     override fun getApplicationsStream(): Flow<List<Application?>> {
         return appDao.observeAll().map { list ->
@@ -59,6 +64,13 @@ class OfflineFirstApplicationRepository @Inject constructor(
             }
         }
         appDao.deleteUninstalledUserApp(apps.map { it.packageName })
+        usageStatsManager.queryUsageStats(
+            UsageStatsManager.INTERVAL_WEEKLY,
+            0,
+            System.currentTimeMillis()
+        ).forEach {
+            appDao.updateUsageTime(it.totalTimeInForeground, it.packageName)
+        }
         refreshApplicationMutex.unlock()
     }
 

@@ -52,25 +52,24 @@ android {
 }
 
 dependencies {
-    dependencies {
-        // Jetpack Compose
-        implementation(libs.androidx.activity.compose)
-        implementation(platform(libs.androidx.compose.bom))
-        implementation(libs.androidx.compose.material3)
-        implementation(libs.androidx.navigation.compose)
-        implementation(libs.androidx.lifecycle.runtimeCompose)
+    // Jetpack Compose
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.runtimeCompose)
 
-        // Coil for Image Loading
-        implementation(libs.coil.compose)
+    // Coil for Image Loading
+    implementation(libs.coil.compose)
 
-        // Hilt for Dependency Injection
-        implementation(libs.hilt.android.core)
-        implementation(libs.androidx.hilt.navigation.compose)
-        ksp(libs.hilt.compiler)
+    // Hilt for Dependency Injection
+    implementation(libs.hilt.android.core)
+    implementation(libs.androidx.hilt.navigation.compose)
+    ksp(libs.hilt.compiler)
 
-        // Room for local database
-        implementation(libs.room.runtime)
-        implementation(libs.room.ktx)
-        ksp(libs.room.compiler)
-    }
+    // Room for local database
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
 }
