@@ -14,7 +14,7 @@ import com.example.customlauncher.core.database.model.asUserApp
 import com.example.customlauncher.core.database.model.canUninstall
 import com.example.customlauncher.core.database.model.isInstalledAndUpToDate
 import com.example.customlauncher.core.model.Application
-import com.example.customlauncher.core.util.asBitmap
+import com.example.customlauncher.core.ui.util.asBitmap
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
