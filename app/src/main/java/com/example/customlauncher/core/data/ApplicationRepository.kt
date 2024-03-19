@@ -13,4 +13,6 @@ interface ApplicationRepository {
     suspend fun editName(name: String, userApp: Application.UserApp)
 
     suspend fun handleNotifications(notifications: List<StatusBarNotification>)
+
+    suspend fun moveApplication(packageName: String, toIndex: Int)
 }

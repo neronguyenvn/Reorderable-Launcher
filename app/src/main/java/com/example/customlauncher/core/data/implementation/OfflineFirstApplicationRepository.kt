@@ -13,8 +13,8 @@ import com.example.customlauncher.core.database.ApplicationDao
 import com.example.customlauncher.core.database.model.asUserApp
 import com.example.customlauncher.core.database.model.canUninstall
 import com.example.customlauncher.core.database.model.isInstalledAndUpToDate
+import com.example.customlauncher.core.designsystem.util.asBitmap
 import com.example.customlauncher.core.model.Application
-import com.example.customlauncher.core.ui.util.asBitmap
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -43,7 +43,7 @@ class OfflineFirstApplicationRepository @Inject constructor(
 
     override fun getApplicationsStream(): Flow<List<Application?>> {
         return appDao.observeAll().map { list ->
-            list.map { entity ->
+            list.sortedBy { it.index }.map { entity ->
                 entity.asUserApp(
                     icon = resolveInfo[entity.packageName]?.loadIcon(pm)?.asBitmap(),
                     canUninstall = entity.canUninstall(pm)
@@ -55,7 +55,8 @@ class OfflineFirstApplicationRepository @Inject constructor(
     private val refreshApplicationMutex = Mutex()
     override suspend fun refreshApplications() {
         refreshApplicationMutex.lock()
-        val apps = resolveInfo.values.map { it.asApplicationEntity(pm) }
+        val apps =
+            resolveInfo.values.mapIndexed { index, info -> info.asApplicationEntity(pm, index) }
         for (app in apps) {
             if (!app.isInstalledAndUpToDate(appDao)) {
                 appDao.upsert(app)
@@ -87,6 +88,10 @@ class OfflineFirstApplicationRepository @Inject constructor(
         notifications.groupingBy { it.packageName }.eachCount()
             .forEach { appDao.updateNotificationCount(it.value, it.key) }
         handleNotificationsMutex.unlock()
+    }
+
+    override suspend fun moveApplication(packageName: String, toIndex: Int) {
+        appDao.updateIndexByPackageName(packageName, toIndex)
     }
 }
 

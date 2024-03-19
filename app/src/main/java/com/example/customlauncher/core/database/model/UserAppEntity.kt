@@ -18,6 +18,7 @@ import com.example.customlauncher.core.model.Application.UserApp
 data class UserAppEntity(
     val name: String,
     val version: String,
+    val index: Int,
     val usageMillis: Long = 0,
     val notificationCount: Int = 0,
 

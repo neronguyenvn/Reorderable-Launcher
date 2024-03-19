@@ -2,7 +2,6 @@ package com.example.customlauncher.core.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,8 +20,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,7 +39,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.customlauncher.core.model.Application
 import com.example.customlauncher.core.model.TooltipMenu
-import com.example.customlauncher.core.model.launch
 import com.example.customlauncher.core.model.showInfo
 import com.example.customlauncher.core.model.uninstall
 import com.example.customlauncher.feature.home.HomeScreenEvent
@@ -61,22 +57,22 @@ fun UserAppItem(
     LaunchedEffect(isSelected) {
         if (isSelected) tooltipState.show() else tooltipState.dismiss()
     }
-
-    TooltipBox(
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-        state = tooltipState,
-        tooltip = {
-            TooltipBoxUi(
-                app = app,
-                showEditNameDialog = { showEditNameDialog = true },
-                cancelSelected = { eventSink(HomeScreenEvent.LongClickOnApp(null)) },
-            )
-        }
-    ) {
+    /*
+        TooltipBox(
+            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+            state = tooltipState,
+            tooltip = {
+                TooltipBoxUi(
+                    app = app,
+                    showEditNameDialog = { showEditNameDialog = true },
+                    cancelSelected = { eventSink(HomeScreenEvent.LongClickOnApp(null)) },
+                )
+            }
+        ) {*/
         AppItemUi(app) {
             eventSink(HomeScreenEvent.LongClickOnApp(it))
         }
-    }
+    // }
 
     if (showEditNameDialog) {
         EditAppNameDialog(
@@ -105,10 +101,10 @@ private fun AppItemUi(
         modifier = Modifier
             .clip(RoundedCornerShape(15))
             .fillMaxWidth()
-            .combinedClickable(
-                onLongClick = { selectApp(app) },
-                onClick = { app.launch(context) }
-            )
+            /*            .combinedClickable(
+                            onLongClick = { selectApp(app) },
+                            onClick = { app.launch(context) }
+                        )*/
             .padding(vertical = 4.dp),
     ) {
         BadgedBox(

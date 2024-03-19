@@ -8,23 +8,26 @@ import android.provider.Settings
 import androidx.annotation.DrawableRes
 
 
-sealed interface Application {
+sealed class Application {
+
+    abstract val packageName: String
 
     data class CompanyApp(
         val name: String,
+        override val packageName: String,
 
         @DrawableRes
         val iconId: Int
-    ) : Application
+    ) : Application()
 
     data class UserApp(
         val name: String,
-        val packageName: String,
+        override val packageName: String,
         val version: String,
         val icon: Bitmap,
         val canUninstall: Boolean,
         val notificationCount: Int
-    ) : Application
+    ) : Application()
 }
 
 fun Application.UserApp.launch(context: Context) {

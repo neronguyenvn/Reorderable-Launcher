@@ -32,4 +32,7 @@ interface ApplicationDao {
 
     @Query("UPDATE UserApp SET notificationCount = 0")
     suspend fun unsetAllNotificationCount()
+
+    @Query("Update UserApp SET `index` = :toIndex WHERE packageName = :packageName")
+    suspend fun updateIndexByPackageName(packageName: String, toIndex: Int)
 }

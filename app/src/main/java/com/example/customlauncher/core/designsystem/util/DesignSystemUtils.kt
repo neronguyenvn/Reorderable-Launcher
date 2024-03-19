@@ -1,4 +1,4 @@
-package com.example.customlauncher.core.ui.util
+package com.example.customlauncher.core.designsystem.util
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
