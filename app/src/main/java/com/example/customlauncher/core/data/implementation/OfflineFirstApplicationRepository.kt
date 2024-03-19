@@ -17,6 +17,7 @@ import com.example.customlauncher.core.designsystem.util.asBitmap
 import com.example.customlauncher.core.model.Application
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
@@ -55,16 +56,24 @@ class OfflineFirstApplicationRepository @Inject constructor(
     private val refreshApplicationMutex = Mutex()
     override suspend fun refreshApplications() {
         refreshApplicationMutex.lock()
-        val apps =
-            resolveInfo.values.mapIndexed { index, info -> info.asApplicationEntity(pm, index) }
-        for (app in apps) {
+        val dbApps = appDao.observeAll().first().associateBy { it.packageName }
+        var latestIndex = appDao.getLatestIndex()
+
+        val currentApps = resolveInfo.values.map { info ->
+            info.asApplicationEntity(
+                packageManager = pm,
+                index = dbApps[info.packageName]?.index ?: ++latestIndex
+            )
+        }
+
+        for (app in currentApps) {
             if (!app.isInstalledAndUpToDate(appDao)) {
                 appDao.upsert(app)
             } else {
                 Log.d("NERO", "UserApp ${app.packageName} is up to date")
             }
         }
-        appDao.deleteUninstalledUserApp(apps.map { it.packageName })
+        appDao.deleteUninstalledUserApp(currentApps.map { it.packageName })
 
         usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_WEEKLY,

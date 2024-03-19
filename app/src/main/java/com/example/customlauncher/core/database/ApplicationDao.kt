@@ -35,4 +35,7 @@ interface ApplicationDao {
 
     @Query("Update UserApp SET `index` = :toIndex WHERE packageName = :packageName")
     suspend fun updateIndexByPackageName(packageName: String, toIndex: Int)
+
+    @Query("SELECT MAX(`index`) FROM UserApp")
+    suspend fun getLatestIndex(): Int
 }

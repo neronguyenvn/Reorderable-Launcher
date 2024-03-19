@@ -6,9 +6,9 @@ import com.example.customlauncher.core.database.model.UserAppEntity
 
 val ResolveInfo.packageName: String get() = activityInfo.packageName
 
-fun ResolveInfo.asApplicationEntity(pm: PackageManager, index: Int) = UserAppEntity(
-    name = loadLabel(pm).toString(),
+fun ResolveInfo.asApplicationEntity(packageManager: PackageManager, index: Int) = UserAppEntity(
+    name = loadLabel(packageManager).toString(),
     packageName = packageName,
-    version = pm.getPackageInfo(packageName, 0).versionName,
+    version = packageManager.getPackageInfo(packageName, 0).versionName,
     index = index
 )
