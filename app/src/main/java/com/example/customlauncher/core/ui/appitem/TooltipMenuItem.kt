@@ -18,8 +18,8 @@ import com.example.customlauncher.core.model.TooltipMenu
 fun TooltipMenuItem(tooltipMenu: TooltipMenu, action: () -> Unit) {
     Row(
         Modifier
-            .clickable { action() }
             .fillMaxWidth()
+            .clickable { action() }
             .padding(16.dp)
     ) {
         Icon(imageVector = tooltipMenu.icon, contentDescription = "", tint = Color.DarkGray)

@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -110,7 +111,7 @@ private fun AppItemUi(app: com.example.customlauncher.core.model.App.UserApp) {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 8.dp),
     ) {
         BadgedBox(
             badge = {
@@ -132,6 +133,7 @@ private fun AppItemUi(app: com.example.customlauncher.core.model.App.UserApp) {
             text = app.name, style = MaterialTheme.typography.labelLarge,
             color = Color.White,
             textAlign = TextAlign.Center,
+            maxLines = 2
         )
     }
 }
@@ -144,9 +146,10 @@ private fun TooltipBoxUi(
 ) {
     val context = LocalContext.current
     Column(
-        Modifier
-            .background(Color.White, RoundedCornerShape(15))
+        modifier = Modifier
             .fillMaxWidth(0.5f)
+            .clip(RoundedCornerShape(15))
+            .background(Color.White)
     ) {
         TooltipMenuItem(tooltipMenu = TooltipMenu.Edit) {
             showEditNameDialog()
