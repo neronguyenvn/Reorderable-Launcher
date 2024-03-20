@@ -9,7 +9,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.customlauncher.core.database.ApplicationDao
-import com.example.customlauncher.core.model.Application.UserApp
+import com.example.customlauncher.core.model.App.UserApp
 
 @Entity(
     tableName = "UserApp",

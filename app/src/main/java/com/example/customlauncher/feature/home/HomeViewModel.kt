@@ -2,8 +2,8 @@ package com.example.customlauncher.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.customlauncher.core.data.ApplicationRepository
-import com.example.customlauncher.core.model.Application
+import com.example.customlauncher.core.data.AppRepository
+import com.example.customlauncher.core.model.App.UserApp
 import com.example.customlauncher.feature.home.HomeScreenEvent.EditName
 import com.example.customlauncher.feature.home.HomeScreenEvent.MoveApp
 import com.example.customlauncher.feature.home.HomeScreenEvent.SelectToShowTooltip
@@ -22,22 +22,22 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class HomeUiState(
-    val applications: List<Application> = emptyList(),
-    val selectedApplication: Application.UserApp? = null,
+    val apps: List<UserApp> = emptyList(),
+    val selectedApp: UserApp? = null,
     val eventSink: (HomeScreenEvent) -> Unit = {}
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val appRepo: ApplicationRepository
+    private val appRepo: AppRepository
 ) : ViewModel() {
 
-    private val _selectedApp = MutableStateFlow<Application.UserApp?>(null)
+    private val _selectedApp = MutableStateFlow<UserApp?>(null)
     private val selected get() = _selectedApp.value!!
 
-    private var applicationCollectJob: Job? = null
+    private var collectAppsJob: Job? = null
     private var updateAppPositionJob: Job? = null
-    private val _applications = MutableStateFlow<List<Application>>(emptyList())
+    private val _applications = MutableStateFlow<List<UserApp>>(emptyList())
     private val apps get() = _applications.value
 
     init {
@@ -49,7 +49,7 @@ class HomeViewModel @Inject constructor(
             is SelectToShowTooltip -> _selectedApp.value = event.userApp
 
             is EditName -> viewModelScope.launch {
-                appRepo.editName(event.value, selected)
+                appRepo.editAppName(event.value, selected)
                 _selectedApp.value = null
             }
 
@@ -61,7 +61,7 @@ class HomeViewModel @Inject constructor(
             is StopDrag -> updateAppPositionJob = viewModelScope.launch {
                 delay(500)
                 for (i in minOf(event.from, event.to)..apps.lastIndex) {
-                    appRepo.moveApplication(apps[i].packageName, i)
+                    appRepo.moveApp(apps[i].packageName, i)
                 }
                 startCollect()
             }
@@ -70,8 +70,8 @@ class HomeViewModel @Inject constructor(
 
     val uiState = _applications.combine(_selectedApp) { apps, selected ->
         HomeUiState(
-            applications = apps,
-            selectedApplication = selected,
+            apps = apps,
+            selectedApp = selected,
             eventSink = eventSink
         )
     }.stateIn(
@@ -81,14 +81,14 @@ class HomeViewModel @Inject constructor(
     )
 
     private fun startCollect() {
-        applicationCollectJob = appRepo.getApplicationsStream()
+        collectAppsJob = appRepo.getAppsStream()
             .onEach { _applications.value = it.filterNotNull() }
             .launchIn(viewModelScope)
     }
 
     private fun cancelAllJobs() {
-        applicationCollectJob?.cancel()
-        applicationCollectJob = null
+        collectAppsJob?.cancel()
+        collectAppsJob = null
         updateAppPositionJob?.cancel()
         updateAppPositionJob = null
     }

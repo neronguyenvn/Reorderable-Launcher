@@ -1,4 +1,4 @@
-package com.example.customlauncher.core.ui
+package com.example.customlauncher.core.ui.appitem
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -40,7 +40,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.detectPressOrDragAndReorder
-import com.example.customlauncher.core.model.Application
 import com.example.customlauncher.core.model.TooltipMenu
 import com.example.customlauncher.core.model.launch
 import com.example.customlauncher.core.model.showInfo
@@ -50,7 +49,7 @@ import com.example.customlauncher.feature.home.HomeScreenEvent
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserAppItem(
-    app: Application.UserApp,
+    app: com.example.customlauncher.core.model.App.UserApp,
     isSelected: Boolean,
     gridState: ReorderableLazyGridState,
     isDragging: Boolean,
@@ -101,7 +100,7 @@ fun UserAppItem(
 }
 
 @Composable
-private fun AppItemUi(app: Application.UserApp) {
+private fun AppItemUi(app: com.example.customlauncher.core.model.App.UserApp) {
     val imageRequest = ImageRequest.Builder(LocalContext.current)
         .data(app.icon)
         .memoryCacheKey(app.packageName)
@@ -139,7 +138,7 @@ private fun AppItemUi(app: Application.UserApp) {
 
 @Composable
 private fun TooltipBoxUi(
-    app: Application.UserApp,
+    app: com.example.customlauncher.core.model.App.UserApp,
     showEditNameDialog: () -> Unit,
     cancelSelected: () -> Unit
 ) {

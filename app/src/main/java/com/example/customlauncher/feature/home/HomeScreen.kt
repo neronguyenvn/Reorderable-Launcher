@@ -21,9 +21,8 @@ import com.example.customlauncher.core.designsystem.component.reorderablelazygri
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.rememberReorderableLazyGridState
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.reorderable
 import com.example.customlauncher.core.designsystem.util.noRippleClickable
-import com.example.customlauncher.core.model.Application
-import com.example.customlauncher.core.model.Application.UserApp
-import com.example.customlauncher.core.ui.UserAppItem
+import com.example.customlauncher.core.model.App.UserApp
+import com.example.customlauncher.core.ui.appitem.UserAppItem
 import com.example.customlauncher.feature.home.HomeScreenEvent.MoveApp
 import com.example.customlauncher.feature.home.HomeScreenEvent.SelectToShowTooltip
 import com.example.customlauncher.feature.home.HomeScreenEvent.StartDrag
@@ -62,8 +61,8 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
             modifier = Modifier.reorderable(state)
         ) {
             homeScreenItems(
-                applications = uiState.applications,
-                selectedAppPackageName = uiState.selectedApplication?.packageName,
+                apps = uiState.apps,
+                selectedAppPackageName = uiState.selectedApp?.packageName,
                 gridState = state,
                 eventSink = uiState.eventSink
             )
@@ -72,13 +71,12 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
 }
 
 private fun LazyGridScope.homeScreenItems(
-    applications: List<Application>,
+    apps: List<UserApp>,
     selectedAppPackageName: String?,
     gridState: ReorderableLazyGridState,
     eventSink: (HomeScreenEvent) -> Unit,
 ) {
-    items(applications, { it.packageName }) { app ->
-        app as UserApp
+    items(apps, { it.packageName }) { app ->
         ReorderableItem(gridState, app.packageName) { isDragging ->
             UserAppItem(
                 app = app,

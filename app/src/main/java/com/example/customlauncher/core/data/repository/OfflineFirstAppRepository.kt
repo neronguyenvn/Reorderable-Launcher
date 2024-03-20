@@ -1,4 +1,4 @@
-package com.example.customlauncher.core.data.implementation
+package com.example.customlauncher.core.data.repository
 
 import android.app.usage.UsageStatsManager
 import android.content.Context
@@ -6,7 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import com.example.customlauncher.core.data.ApplicationRepository
+import com.example.customlauncher.core.data.AppRepository
 import com.example.customlauncher.core.data.util.asApplicationEntity
 import com.example.customlauncher.core.data.util.packageName
 import com.example.customlauncher.core.database.ApplicationDao
@@ -14,7 +14,7 @@ import com.example.customlauncher.core.database.model.asUserApp
 import com.example.customlauncher.core.database.model.canUninstall
 import com.example.customlauncher.core.database.model.isInstalledAndUpToDate
 import com.example.customlauncher.core.designsystem.util.asBitmap
-import com.example.customlauncher.core.model.Application
+import com.example.customlauncher.core.model.App.UserApp
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -22,13 +22,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
 
-
-class OfflineFirstApplicationRepository @Inject constructor(
+class OfflineFirstAppRepository @Inject constructor(
     private val appDao: ApplicationDao,
 
     @ApplicationContext
     private val context: Context
-) : ApplicationRepository {
+) : AppRepository {
 
     private val pm = context.packageManager
 
@@ -42,7 +41,7 @@ class OfflineFirstApplicationRepository @Inject constructor(
         context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
 
 
-    override fun getApplicationsStream(): Flow<List<Application?>> {
+    override fun getAppsStream(): Flow<List<UserApp?>> {
         return appDao.observeAll().map { list ->
             list.sortedBy { it.index }.map { entity ->
                 entity.asUserApp(
@@ -54,7 +53,7 @@ class OfflineFirstApplicationRepository @Inject constructor(
     }
 
     private val refreshApplicationMutex = Mutex()
-    override suspend fun refreshApplications() {
+    override suspend fun refreshApps() {
         refreshApplicationMutex.lock()
         val dbApps = appDao.observeAll().first().associateBy { it.packageName }
         var latestIndex = appDao.getLatestIndex()
@@ -70,7 +69,7 @@ class OfflineFirstApplicationRepository @Inject constructor(
             if (!app.isInstalledAndUpToDate(appDao)) {
                 appDao.upsert(app)
             } else {
-                Log.d("NERO", "UserApp ${app.packageName} is up to date")
+                Log.d("neronguyenvn", "UserApp ${app.packageName} is up to date")
             }
         }
         appDao.deleteUninstalledUserApp(currentApps.map { it.packageName })
@@ -86,12 +85,12 @@ class OfflineFirstApplicationRepository @Inject constructor(
         refreshApplicationMutex.unlock()
     }
 
-    override suspend fun editName(name: String, userApp: Application.UserApp) {
-        appDao.updateName(name, userApp.packageName)
+    override suspend fun editAppName(newName: String, app: UserApp) {
+        appDao.updateName(newName, app.packageName)
     }
 
     private val handleNotificationsMutex = Mutex()
-    override suspend fun handleNotifications(notifications: List<StatusBarNotification>) {
+    override suspend fun handleNotis(notifications: List<StatusBarNotification>) {
         handleNotificationsMutex.lock()
         appDao.unsetAllNotificationCount()
         notifications.groupingBy { it.packageName }.eachCount()
@@ -99,7 +98,7 @@ class OfflineFirstApplicationRepository @Inject constructor(
         handleNotificationsMutex.unlock()
     }
 
-    override suspend fun moveApplication(packageName: String, toIndex: Int) {
+    override suspend fun moveApp(packageName: String, toIndex: Int) {
         appDao.updateIndexByPackageName(packageName, toIndex)
     }
 }

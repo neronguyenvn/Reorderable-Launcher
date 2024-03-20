@@ -4,9 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.util.Log
 import com.example.customlauncher.core.common.coroutine.di.ApplicationScope
-import com.example.customlauncher.core.data.ApplicationRepository
+import com.example.customlauncher.core.data.AppRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -14,8 +13,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ApplicationService @Inject constructor(
-    private val applicationRepository: ApplicationRepository,
+class AppChangeBroadcastReceiver @Inject constructor(
+    private val applicationRepository: AppRepository,
 
     @ApplicationContext
     context: Context,
@@ -26,7 +25,6 @@ class ApplicationService @Inject constructor(
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            Log.d("NERO", intent.toString())
             requestApplicationListUpdate()
         }
     }
@@ -46,7 +44,7 @@ class ApplicationService @Inject constructor(
 
     private fun requestApplicationListUpdate() {
         applicationScope.launch {
-            applicationRepository.refreshApplications()
+            applicationRepository.refreshApps()
         }
     }
 }

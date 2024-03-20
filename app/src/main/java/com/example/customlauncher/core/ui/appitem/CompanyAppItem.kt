@@ -1,4 +1,4 @@
-package com.example.customlauncher.core.ui
+package com.example.customlauncher.core.ui.appitem
 
 import android.view.ViewGroup
 import android.webkit.WebView
@@ -25,10 +25,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.customlauncher.core.model.Application
+import com.example.customlauncher.core.model.App
 
 @Composable
-fun CompanyAppItem(app: Application.CompanyApp) {
+fun CompanyAppItem(app: App.CompanyApp) {
     var loadde by remember { mutableStateOf(false) }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,

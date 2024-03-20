@@ -21,8 +21,8 @@ interface ApplicationDao {
     @Query("DELETE FROM UserApp WHERE packageName NOT IN (:packages)")
     suspend fun deleteUninstalledUserApp(packages: List<String>)
 
-    @Query("UPDATE UserApp SET name = :name WHERE packageName = :packageName")
-    suspend fun updateName(name: String, packageName: String)
+    @Query("UPDATE UserApp SET name = :newName WHERE packageName = :packageName")
+    suspend fun updateName(newName: String, packageName: String)
 
     @Query("UPDATE UserApp SET usageMillis = :usageTimeMillis WHERE packageName = :packageName")
     suspend fun updateUsageTime(usageTimeMillis: Long, packageName: String)
