@@ -5,8 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.customlauncher.core.data.ApplicationRepository
 import com.example.customlauncher.core.model.Application
 import com.example.customlauncher.feature.home.HomeScreenEvent.EditName
-import com.example.customlauncher.feature.home.HomeScreenEvent.LongClickOnApp
 import com.example.customlauncher.feature.home.HomeScreenEvent.MoveApp
+import com.example.customlauncher.feature.home.HomeScreenEvent.SelectToShowTooltip
 import com.example.customlauncher.feature.home.HomeScreenEvent.StartDrag
 import com.example.customlauncher.feature.home.HomeScreenEvent.StopDrag
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,7 +32,6 @@ class HomeViewModel @Inject constructor(
     private val appRepo: ApplicationRepository
 ) : ViewModel() {
 
-
     private val _selectedApp = MutableStateFlow<Application.UserApp?>(null)
     private val selected get() = _selectedApp.value!!
 
@@ -47,7 +46,8 @@ class HomeViewModel @Inject constructor(
 
     private val eventSink: (HomeScreenEvent) -> Unit = { event ->
         when (event) {
-            is LongClickOnApp -> _selectedApp.value = event.userApp
+            is SelectToShowTooltip -> _selectedApp.value = event.userApp
+
             is EditName -> viewModelScope.launch {
                 appRepo.editName(event.value, selected)
                 _selectedApp.value = null
