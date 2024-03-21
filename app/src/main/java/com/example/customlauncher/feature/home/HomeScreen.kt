@@ -84,11 +84,9 @@ fun HomeScreen(
         PageSlider(
             pageCount = uiState.appPages.size,
             modifier = Modifier.padding(paddings),
-            onHeightChange = { itemHeight = it / rows }
+            onHeightChange = { itemHeight = it / rows },
+            onPageChange = { viewModel.updateCurrentPage(it) }
         ) { index ->
-            LaunchedEffect(index) {
-                viewModel.updateCurrentPage(index)
-            }
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columns),
                 contentPadding = PaddingValues(horizontal = 16.dp),

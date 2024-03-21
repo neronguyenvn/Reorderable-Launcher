@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -17,10 +18,15 @@ fun PageSlider(
     pageCount: Int,
     modifier: Modifier = Modifier,
     onHeightChange: (Dp) -> Unit,
+    onPageChange: (Int) -> Unit,
     content: @Composable (Int) -> Unit
 ) {
     val pagerState = rememberPagerState { pageCount }
     val density = LocalDensity.current
+
+    LaunchedEffect(pagerState.currentPage) {
+        onPageChange(pagerState.currentPage)
+    }
 
     Column(modifier) {
         HorizontalPager(
