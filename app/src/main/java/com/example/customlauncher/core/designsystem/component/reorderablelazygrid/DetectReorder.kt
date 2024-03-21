@@ -15,30 +15,25 @@
  */
 package com.example.customlauncher.core.designsystem.component.reorderablelazygrid
 
+import androidx.compose.foundation.gestures.awaitDragOrCancellation
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.AwaitPointerEventScope
-import androidx.compose.ui.input.pointer.PointerId
-import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 
 @Composable
-fun Modifier.detectReorderAfterLongPress(state: ReorderableState<*>) = detect(state) {
-    awaitLongPressOrCancellation(it)
-}
-
-@Composable
-private fun Modifier.detect(
+fun Modifier.detectPressOrDragAndReorder(
     state: ReorderableState<*>,
-    detect: suspend AwaitPointerEventScope.(PointerId) -> PointerInputChange?
+    onLongClick: () -> Unit,
+    onClick: () -> Unit
 ): Modifier {
     val itemPosition = remember { mutableStateOf(Offset.Zero) }
     return this then Modifier
@@ -46,12 +41,23 @@ private fun Modifier.detect(
         .pointerInput(Unit) {
             awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
-                val start = detect(down.id)
+                awaitLongPressOrCancellation(down.id)?.let { start ->
+                    onLongClick()
+                    awaitDragOrCancellation(down.id)
 
-                if (start != null) {
-                    val relativePosition =
-                        itemPosition.value - state.layoutWindowPosition.value + start.position
+                    val relativePosition = itemPosition.value -
+                            state.layoutWindowPosition.value + start.position
                     state.onDragStart(relativePosition.x.toInt(), relativePosition.y.toInt())
+                }
+            }
+        }
+        .pointerInput(Unit) {
+            awaitEachGesture {
+                awaitFirstDown()
+                waitForUpOrCancellation()?.run {
+                    if (uptimeMillis - previousUptimeMillis < 300) {
+                        onClick()
+                    }
                 }
             }
         }

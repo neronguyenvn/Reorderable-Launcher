@@ -1,27 +1,30 @@
 package com.example.customlauncher.core.database.model
 
 import androidx.room.Entity
-import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.example.customlauncher.core.model.App.CompanyApp
 
-@Entity(
-    tableName = "CompanyApp",
-)
+@Entity(tableName = "CompanyApp")
 data class CompanyAppEntity(
     val name: String,
-    val hash: String,
-    val pubKey: String,
-    val sign: String,
     val version: String,
-    val logo: String,
-    val orientation: String,
-    val author: String,
-    val full_screen: Boolean,
-    val status_bar: String,
-    val type: Int,
-    val page: Int,
     val urlWeb: String,
+    val logo: String,
+    val type: Long,
+    val index: Int,
+    val page: Int,
     val isFavorite: Boolean,
+
     @PrimaryKey
-    val id: String,
+    val id: String
+)
+
+fun CompanyAppEntity.asExternalModel() = CompanyApp(
+    name = name,
+    version = version,
+    urlWeb = urlWeb,
+    logo = logo,
+    type = type,
+    isFavorite = isFavorite,
+    packageName = id
 )

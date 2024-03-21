@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.runtimeCompose)
+    implementation(libs.androidx.compose.material3.windowSizeClass)
 
     // Coil for Image Loading
     implementation(libs.coil.compose)
@@ -73,14 +74,8 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
 
-
-    //Load api
-    implementation(libs.ktor.client.cio)
+    // Ktor for network
     implementation(libs.ktor.client.okhttp)
-
-    //Load object json
-    implementation(libs.gson)
-
-    //Load gif
-    implementation(libs.gif)
+    implementation(libs.ktor.client.logging)
+    implementation(libs.ktor.serialization.json)
 }
