@@ -1,7 +1,7 @@
 package com.example.customlauncher.feature.home
 
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -92,7 +92,7 @@ fun HomeScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 state = state.gridState,
                 modifier = Modifier
-                    .fillMaxHeight()
+                    .fillMaxSize()
                     .reorderable(state)
             ) {
                 homeScreenItems(
@@ -131,6 +131,7 @@ private fun LazyGridScope.homeScreenItems(
 
                 is App.CompanyApp -> CompanyAppItem(
                     app = app,
+                    gridState = gridState,
                     modifier = Modifier.height(itemHeight)
                 )
             }

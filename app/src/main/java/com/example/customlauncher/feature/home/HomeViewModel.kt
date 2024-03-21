@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val ITEM_POSITION_SET_DELAY = 400L
+
 data class HomeUiState(
     val appPages: Map<Int, List<App>> = emptyMap(),
     val selectedApp: UserApp? = null,
@@ -72,10 +74,13 @@ class HomeViewModel @Inject constructor(
             is StartDrag -> cancelAllJobs()
 
             is StopDrag -> updateAppPositionJob = viewModelScope.launch {
-                delay(200)
+                delay(ITEM_POSITION_SET_DELAY)
                 appPages[_currentPage.first()]?.let { list ->
                     for (i in minOf(event.from, event.to)..list.lastIndex) {
-                        appRepo.moveApp(list[i].packageName, i)
+                        when (val app = list[i]) {
+                            is UserApp -> appRepo.moveUserApp(i, app)
+                            is App.CompanyApp -> appRepo.moveCompanyApp(i, app)
+                        }
                     }
                     startCollect()
                 }

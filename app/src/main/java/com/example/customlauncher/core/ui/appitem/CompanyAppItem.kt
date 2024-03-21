@@ -2,7 +2,6 @@ package com.example.customlauncher.core.ui.appitem
 
 import android.view.ViewGroup
 import android.webkit.WebView
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,11 +23,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
+import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.detectPressOrDragAndReorder
 import com.example.customlauncher.core.model.App
 
 @Composable
 fun CompanyAppItem(
     app: App.CompanyApp,
+    gridState: ReorderableLazyGridState,
     modifier: Modifier = Modifier
 ) {
     var showWebView by remember { mutableStateOf(false) }
@@ -43,7 +45,10 @@ fun CompanyAppItem(
         modifier = modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(15))
-            .clickable { showWebView = true }
+            .detectPressOrDragAndReorder(
+                state = gridState,
+                onClick = { showWebView = true }
+            )
     ) {
         AsyncImage(
             model = imageRequest,
