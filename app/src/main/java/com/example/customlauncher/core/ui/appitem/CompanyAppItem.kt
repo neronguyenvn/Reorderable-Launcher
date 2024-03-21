@@ -2,12 +2,9 @@ package com.example.customlauncher.core.ui.appitem
 
 import android.view.ViewGroup
 import android.webkit.WebView
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,14 +20,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
+import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.detectPressOrDragAndReorder
 import com.example.customlauncher.core.model.App
 
 @Composable
-fun CompanyAppItem(app: App.CompanyApp) {
+fun CompanyAppItem(
+    app: App.CompanyApp,
+    gridState: ReorderableLazyGridState,
+    modifier: Modifier = Modifier
+) {
     var showWebView by remember { mutableStateOf(false) }
     val imageRequest = ImageRequest.Builder(LocalContext.current)
         .data(app.logo)
@@ -40,17 +42,19 @@ fun CompanyAppItem(app: App.CompanyApp) {
     Column(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(15))
-            .clickable { showWebView = true }
+            .detectPressOrDragAndReorder(
+                state = gridState,
+                onClick = { showWebView = true }
+            )
     ) {
         AsyncImage(
             model = imageRequest,
             contentDescription = null,
             modifier = Modifier.fillMaxSize(0.7f)
         )
-        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = app.name, style = MaterialTheme.typography.labelMedium,
             color = Color.White,

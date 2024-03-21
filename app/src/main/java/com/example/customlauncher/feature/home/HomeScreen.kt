@@ -1,7 +1,7 @@
 package com.example.customlauncher.feature.home
 
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -39,6 +39,7 @@ import com.example.customlauncher.feature.home.HomeScreenEvent.MoveApp
 import com.example.customlauncher.feature.home.HomeScreenEvent.SelectToShowTooltip
 import com.example.customlauncher.feature.home.HomeScreenEvent.StartDrag
 import com.example.customlauncher.feature.home.HomeScreenEvent.StopDrag
+import kotlin.math.roundToInt
 
 sealed interface HomeScreenEvent {
     data class SelectToShowTooltip(val userApp: UserApp?) : HomeScreenEvent
@@ -61,7 +62,7 @@ fun HomeScreen(
         else -> throw Exception()
     }
     val rows = LocalConfiguration.current.run {
-        screenHeightDp / (screenWidthDp / columns) - 2
+        screenHeightDp / (screenWidthDp * 1.5 / columns).roundToInt()
     }
     var itemHeight by remember { mutableStateOf(0.dp) }
 
@@ -83,17 +84,15 @@ fun HomeScreen(
         PageSlider(
             pageCount = uiState.appPages.size,
             modifier = Modifier.padding(paddings),
-            onHeightChange = { itemHeight = it / rows }
+            onHeightChange = { itemHeight = it / rows },
+            onPageChange = { viewModel.updateCurrentPage(it) }
         ) { index ->
-            LaunchedEffect(index) {
-                viewModel.updateCurrentPage(index)
-            }
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columns),
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 state = state.gridState,
                 modifier = Modifier
-                    .fillMaxHeight()
+                    .fillMaxSize()
                     .reorderable(state)
             ) {
                 homeScreenItems(
@@ -130,7 +129,11 @@ private fun LazyGridScope.homeScreenItems(
                     modifier = Modifier.height(itemHeight)
                 )
 
-                is App.CompanyApp -> CompanyAppItem(app)
+                is App.CompanyApp -> CompanyAppItem(
+                    app = app,
+                    gridState = gridState,
+                    modifier = Modifier.height(itemHeight)
+                )
             }
         }
     }

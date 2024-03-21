@@ -131,7 +131,6 @@ private fun AppItemUi(app: App.UserApp) {
                 modifier = Modifier.fillMaxSize(0.7f)
             )
         }
-        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = app.name, style = MaterialTheme.typography.labelMedium,
             color = Color.White,

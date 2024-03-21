@@ -80,6 +80,10 @@ class OfflineFirstAppRepository @Inject constructor(
         }
     }
 
+    override fun updateGridCount(value: Int) {
+        _gridCount.value = value
+    }
+
     private val refreshApplicationMutex = Mutex()
     override suspend fun refreshApps() {
         refreshApplicationMutex.lock()
@@ -162,12 +166,12 @@ class OfflineFirstAppRepository @Inject constructor(
         handleNotificationsMutex.unlock()
     }
 
-    override suspend fun moveApp(packageName: String, toIndex: Int) {
-        userAppDao.updateIndexByPackageName(packageName, toIndex)
+    override suspend fun moveUserApp(toIndex: Int, app: UserApp) {
+        userAppDao.updateIndexByPackageName(toIndex, app.packageName)
     }
 
-    override fun updateGridCount(value: Int) {
-        _gridCount.value = value
+    override suspend fun moveCompanyApp(toIndex: Int, app: CompanyApp) {
+        companyAppDao.updateIndexById(toIndex, app.packageName)
     }
 
     private fun calculatePage(gridCount: Int, pageCounts: MutableList<PageCount>): Int {

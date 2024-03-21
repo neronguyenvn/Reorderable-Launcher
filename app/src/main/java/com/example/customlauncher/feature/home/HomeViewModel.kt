@@ -22,7 +22,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.collections.set
+
+private const val ITEM_POSITION_SET_DELAY = 400L
 
 data class HomeUiState(
     val appPages: Map<Int, List<App>> = emptyMap(),
@@ -59,13 +60,13 @@ class HomeViewModel @Inject constructor(
             }
 
             is MoveApp -> viewModelScope.launch {
-                val current = _currentPage.first()
-                val newAppPages = appPages.toMutableMap().apply {
-                    compute(current) { _, value ->
-                        value?.toMutableList()?.let {
-                            it.apply { add(event.to.index, removeAt(event.from.index)) }
+                val currentPage = _currentPage.first()
+                val newAppPages = appPages.mapValues {
+                    if (it.key == currentPage) {
+                        it.value.toMutableList().apply {
+                            add(event.to.index, removeAt(event.from.index))
                         }
-                    }
+                    } else it.value
                 }
                 _appPages.value = newAppPages
             }
@@ -73,10 +74,13 @@ class HomeViewModel @Inject constructor(
             is StartDrag -> cancelAllJobs()
 
             is StopDrag -> updateAppPositionJob = viewModelScope.launch {
-                delay(200)
+                delay(ITEM_POSITION_SET_DELAY)
                 appPages[_currentPage.first()]?.let { list ->
                     for (i in minOf(event.from, event.to)..list.lastIndex) {
-                        appRepo.moveApp(list[i].packageName, i)
+                        when (val app = list[i]) {
+                            is UserApp -> appRepo.moveUserApp(i, app)
+                            is App.CompanyApp -> appRepo.moveCompanyApp(i, app)
+                        }
                     }
                     startCollect()
                 }
@@ -107,10 +111,8 @@ class HomeViewModel @Inject constructor(
         collectAppsJob = combine(
             appRepo.getCompanyAppsStream(),
             appRepo.getUserAppsStream()
-        ) { companys, users ->
-            _appPages.value = (users.toMutableMap() as MutableMap<Int, List<App>>).apply {
-                this[0] = companys
-            }
+        ) { companies, users ->
+            _appPages.value = users + (0 to companies)
         }.launchIn(viewModelScope)
     }
 

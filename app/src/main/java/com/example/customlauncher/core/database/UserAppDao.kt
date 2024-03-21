@@ -35,7 +35,7 @@ interface UserAppDao {
     suspend fun unsetAllNotificationCount()
 
     @Query("Update UserApp SET `index` = :toIndex WHERE packageName = :packageName")
-    suspend fun updateIndexByPackageName(packageName: String, toIndex: Int)
+    suspend fun updateIndexByPackageName(toIndex: Int, packageName: String)
 
     @Query("SELECT MAX(`index`) FROM UserApp")
     suspend fun getLatestIndex(): Int

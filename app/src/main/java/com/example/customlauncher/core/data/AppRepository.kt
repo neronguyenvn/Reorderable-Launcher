@@ -11,13 +11,15 @@ interface AppRepository {
 
     fun getCompanyAppsStream(): Flow<List<CompanyApp>>
 
+    fun updateGridCount(value: Int)
+
     suspend fun refreshApps()
 
     suspend fun editAppName(newName: String, app: UserApp)
 
     suspend fun handleNotis(notifications: List<StatusBarNotification>)
 
-    suspend fun moveApp(packageName: String, toIndex: Int)
+    suspend fun moveUserApp(toIndex: Int, app: UserApp)
 
-    fun updateGridCount(value: Int)
+    suspend fun moveCompanyApp(toIndex: Int, app: CompanyApp)
 }
