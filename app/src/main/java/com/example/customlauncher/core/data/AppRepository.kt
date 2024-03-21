@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface AppRepository {
 
-    fun getAppsStream(): Flow<List<UserApp?>>
+    fun getAppsStream(): Flow<Map<Int, List<UserApp>>>
 
     suspend fun refreshApps()
 
@@ -15,4 +15,6 @@ interface AppRepository {
     suspend fun handleNotis(notifications: List<StatusBarNotification>)
 
     suspend fun moveApp(packageName: String, toIndex: Int)
+
+    fun updateGridCount(value: Int)
 }

@@ -3,6 +3,7 @@ package com.example.customlauncher.core.database
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
+import com.example.customlauncher.core.database.model.PageCount
 import com.example.customlauncher.core.database.model.UserAppEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -38,4 +39,7 @@ interface ApplicationDao {
 
     @Query("SELECT MAX(`index`) FROM UserApp")
     suspend fun getLatestIndex(): Int
+
+    @Query("SELECT page as pageIndex, COUNT(*) as count FROM UserApp GROUP BY page")
+    suspend fun getPageCounts(): List<PageCount>
 }

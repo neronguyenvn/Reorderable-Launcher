@@ -15,30 +15,34 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class HomeUiState(
-    val apps: List<UserApp> = emptyList(),
+    val appPages: Map<Int, List<UserApp>> = emptyMap(),
     val selectedApp: UserApp? = null,
     val eventSink: (HomeScreenEvent) -> Unit = {}
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val appRepo: AppRepository
+    private val appRepo: AppRepository,
 ) : ViewModel() {
 
-    private val _selectedApp = MutableStateFlow<UserApp?>(null)
-    private val selected get() = _selectedApp.value!!
+    private val _selectedAppByLongClick = MutableStateFlow<UserApp?>(null)
+    private val selected get() = _selectedAppByLongClick.value!!
 
     private var collectAppsJob: Job? = null
     private var updateAppPositionJob: Job? = null
-    private val _applications = MutableStateFlow<List<UserApp>>(emptyList())
-    private val apps get() = _applications.value
+    private val _appPages = MutableStateFlow<Map<Int, List<UserApp>>>(emptyMap())
+    private val appPages get() = _appPages.value
+
+    private val _currentPage = MutableStateFlow(0)
 
     init {
         startCollect()
@@ -46,31 +50,45 @@ class HomeViewModel @Inject constructor(
 
     private val eventSink: (HomeScreenEvent) -> Unit = { event ->
         when (event) {
-            is SelectToShowTooltip -> _selectedApp.value = event.userApp
+            is SelectToShowTooltip -> _selectedAppByLongClick.value = event.userApp
 
             is EditName -> viewModelScope.launch {
                 appRepo.editAppName(event.value, selected)
-                _selectedApp.value = null
+                _selectedAppByLongClick.value = null
             }
 
-            is MoveApp -> _applications.value = apps.toMutableList()
-                .apply { add(event.to.index, removeAt(event.from.index)) }
+            is MoveApp -> viewModelScope.launch {
+                val current = _currentPage.first()
+                val newAppPages = appPages.toMutableMap().apply {
+                    compute(current) { _, value ->
+                        value?.toMutableList()?.let {
+                            it.apply { add(event.to.index, removeAt(event.from.index)) }
+                        }
+                    }
+                }
+                _appPages.value = newAppPages
+            }
 
             is StartDrag -> cancelAllJobs()
 
             is StopDrag -> updateAppPositionJob = viewModelScope.launch {
-                delay(500)
-                for (i in minOf(event.from, event.to)..apps.lastIndex) {
-                    appRepo.moveApp(apps[i].packageName, i)
+                delay(200)
+                appPages[_currentPage.first()]?.let { list ->
+                    for (i in minOf(event.from, event.to)..list.lastIndex) {
+                        appRepo.moveApp(list[i].packageName, i)
+                    }
+                    startCollect()
                 }
-                startCollect()
             }
         }
     }
 
-    val uiState = _applications.combine(_selectedApp) { apps, selected ->
+    val uiState = combine(
+        _appPages,
+        _selectedAppByLongClick,
+    ) { pages, selected ->
         HomeUiState(
-            apps = apps,
+            appPages = pages,
             selectedApp = selected,
             eventSink = eventSink
         )
@@ -80,9 +98,13 @@ class HomeViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000)
     )
 
+    fun updateGridCount(value: Int) = appRepo.updateGridCount(value)
+
+    fun updateCurrentPage(value: Int) = _currentPage.update { value }
+
     private fun startCollect() {
         collectAppsJob = appRepo.getAppsStream()
-            .onEach { _applications.value = it.filterNotNull() }
+            .onEach { _appPages.value = it }
             .launchIn(viewModelScope)
     }
 

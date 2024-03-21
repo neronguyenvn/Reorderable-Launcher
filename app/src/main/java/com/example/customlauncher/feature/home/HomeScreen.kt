@@ -12,6 +12,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,7 +35,6 @@ import com.example.customlauncher.core.ui.appitem.UserAppItem
 import com.example.customlauncher.core.ui.pageslider.PageSlider
 import com.example.customlauncher.feature.home.HomeScreenEvent.MoveApp
 import com.example.customlauncher.feature.home.HomeScreenEvent.SelectToShowTooltip
-import com.example.customlauncher.feature.home.HomeScreenEvent.SendCurrentPage
 import com.example.customlauncher.feature.home.HomeScreenEvent.StartDrag
 import com.example.customlauncher.feature.home.HomeScreenEvent.StopDrag
 
@@ -44,7 +44,6 @@ sealed interface HomeScreenEvent {
     data class MoveApp(val from: ItemPosition, val to: ItemPosition) : HomeScreenEvent
     data object StartDrag : HomeScreenEvent
     data class StopDrag(val from: Int, val to: Int) : HomeScreenEvent
-    data class SendCurrentPage(val value: Int) : HomeScreenEvent
 }
 
 @Composable
@@ -53,6 +52,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
     val columns = when (windowSizeClass.widthSizeClass) {
         WindowWidthSizeClass.Compact -> 5
         WindowWidthSizeClass.Medium -> 7
@@ -64,6 +64,16 @@ fun HomeScreen(
     }
     var itemHeight by remember { mutableStateOf(0.dp) }
 
+    val state = rememberReorderableLazyGridState(
+        onMove = { from, to -> uiState.eventSink(MoveApp(from, to)) },
+        canDragOver = { _, _ -> true },
+        onDragStart = { _, _, _ -> uiState.eventSink(StartDrag) },
+        onDragEnd = { from, to -> uiState.eventSink(StopDrag(from, to)) }
+    )
+
+    LaunchedEffect(columns, rows) {
+        viewModel.updateGridCount(columns * rows)
+    }
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -72,16 +82,11 @@ fun HomeScreen(
         PageSlider(
             pageCount = uiState.appPages.size,
             modifier = Modifier.padding(paddings),
-            onPageChange = { uiState.eventSink(SendCurrentPage(it)) },
             onHeightChange = { itemHeight = it / rows }
-        ) {
-            val state = rememberReorderableLazyGridState(
-                onMove = { from, to -> uiState.eventSink(MoveApp(from, to)) },
-                canDragOver = { _, _ -> true },
-                onDragStart = { _, _, _ -> uiState.eventSink(StartDrag) },
-                onDragEnd = { from, to -> uiState.eventSink(StopDrag(from, to)) }
-            )
-
+        ) { index ->
+            LaunchedEffect(index) {
+                viewModel.updateCurrentPage(index)
+            }
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columns),
                 contentPadding = PaddingValues(horizontal = 16.dp),
@@ -91,7 +96,7 @@ fun HomeScreen(
                     .reorderable(state)
             ) {
                 homeScreenItems(
-                    apps = uiState.run { appPages[currentPage] } ?: emptyList(),
+                    apps = uiState.appPages[index] ?: emptyList(),
                     selectedPackageName = uiState.selectedApp?.packageName,
                     gridState = state,
                     itemHeight = itemHeight,

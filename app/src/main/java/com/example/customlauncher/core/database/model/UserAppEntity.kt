@@ -19,6 +19,7 @@ data class UserAppEntity(
     val name: String,
     val version: String,
     val index: Int,
+    val page: Int,
     val usageMillis: Long = 0,
     val notificationCount: Int = 0,
 
