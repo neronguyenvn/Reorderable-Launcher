@@ -6,10 +6,9 @@ import android.content.pm.PackageManager
 import android.content.pm.PackageManager.NameNotFoundException
 import android.graphics.Bitmap
 import androidx.room.Entity
-import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.example.customlauncher.core.database.ApplicationDao
-import com.example.customlauncher.core.model.Application.UserApp
+import com.example.customlauncher.core.database.UserAppDao
+import com.example.customlauncher.core.model.App.UserApp
 
 @Entity(
     tableName = "UserApp",
@@ -18,6 +17,7 @@ data class UserAppEntity(
     val name: String,
     val version: String,
     val index: Int,
+    val page: Int,
     val usageMillis: Long = 0,
     val notificationCount: Int = 0,
 
@@ -25,7 +25,7 @@ data class UserAppEntity(
     val packageName: String
 )
 
-fun UserAppEntity.asUserApp(
+fun UserAppEntity.asExternalModel(
     icon: Bitmap?,
     canUninstall: Boolean
 ): UserApp? = icon?.let {
@@ -39,7 +39,7 @@ fun UserAppEntity.asUserApp(
     )
 }
 
-suspend fun UserAppEntity.isInstalledAndUpToDate(dao: ApplicationDao): Boolean {
+suspend fun UserAppEntity.isInstalledAndUpToDate(dao: UserAppDao): Boolean {
     val installed = dao.getByPackageName(packageName) ?: return false
     return installed.version == version
 }

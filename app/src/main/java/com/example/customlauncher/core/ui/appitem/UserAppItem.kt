@@ -1,10 +1,12 @@
-package com.example.customlauncher.core.ui
+package com.example.customlauncher.core.ui.appitem
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,6 +22,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,46 +37,62 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.customlauncher.core.model.Application
+import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
+import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.detectPressOrDragAndReorder
+import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.model.TooltipMenu
+import com.example.customlauncher.core.model.launch
 import com.example.customlauncher.core.model.showInfo
 import com.example.customlauncher.core.model.uninstall
 import com.example.customlauncher.feature.home.HomeScreenEvent
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserAppItem(
-    app: Application.UserApp,
+    app: App.UserApp,
     isSelected: Boolean,
+    gridState: ReorderableLazyGridState,
+    isDragging: Boolean,
+    modifier: Modifier = Modifier,
     eventSink: (HomeScreenEvent) -> Unit
 ) {
     val tooltipState = rememberTooltipState()
     var showEditNameDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
-    LaunchedEffect(isSelected) {
+    LaunchedEffect(isSelected, isDragging) {
+        if (isDragging) {
+            eventSink(HomeScreenEvent.SelectToShowTooltip(null))
+        }
         if (isSelected) tooltipState.show() else tooltipState.dismiss()
     }
-    /*
+
+    Box(
+        modifier = modifier.detectPressOrDragAndReorder(
+            state = gridState,
+            onLongClick = { eventSink(HomeScreenEvent.SelectToShowTooltip(app)) },
+            onClick = { app.launch(context) }
+        )
+    ) {
         TooltipBox(
             positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
             state = tooltipState,
+            enableUserInput = false,
             tooltip = {
                 TooltipBoxUi(
                     app = app,
                     showEditNameDialog = { showEditNameDialog = true },
-                    cancelSelected = { eventSink(HomeScreenEvent.LongClickOnApp(null)) },
+                    cancelSelected = { eventSink(HomeScreenEvent.SelectToShowTooltip(null)) },
                 )
-            }
-        ) {*/
-        AppItemUi(app) {
-            eventSink(HomeScreenEvent.LongClickOnApp(it))
+            }) {
+            AppItemUi(app)
         }
-    // }
+    }
 
     if (showEditNameDialog) {
         EditAppNameDialog(
@@ -85,27 +105,16 @@ fun UserAppItem(
 }
 
 @Composable
-@OptIn(ExperimentalFoundationApi::class)
-private fun AppItemUi(
-    app: Application.UserApp,
-    selectApp: (Application.UserApp) -> Unit,
-) {
-    val context = LocalContext.current
+private fun AppItemUi(app: App.UserApp) {
     val imageRequest = ImageRequest.Builder(LocalContext.current)
         .data(app.icon)
         .memoryCacheKey(app.packageName)
         .build()
 
     Column(
+        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(15))
-            .fillMaxWidth()
-            /*            .combinedClickable(
-                            onLongClick = { selectApp(app) },
-                            onClick = { app.launch(context) }
-                        )*/
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxSize()
     ) {
         BadgedBox(
             badge = {
@@ -119,29 +128,32 @@ private fun AppItemUi(
             AsyncImage(
                 model = imageRequest,
                 contentDescription = null,
-                modifier = Modifier.size(60.dp)
+                modifier = Modifier.fillMaxSize(0.7f)
             )
         }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = app.name, style = MaterialTheme.typography.labelLarge,
+            text = app.name, style = MaterialTheme.typography.labelMedium,
             color = Color.White,
             textAlign = TextAlign.Center,
+            overflow = TextOverflow.Ellipsis,
+            maxLines = 1
         )
     }
 }
 
 @Composable
 private fun TooltipBoxUi(
-    app: Application.UserApp,
+    app: App.UserApp,
     showEditNameDialog: () -> Unit,
     cancelSelected: () -> Unit
 ) {
     val context = LocalContext.current
     Column(
-        Modifier
-            .background(Color.White, RoundedCornerShape(15))
+        modifier = Modifier
             .fillMaxWidth(0.5f)
+            .clip(RoundedCornerShape(15))
+            .background(Color.White)
     ) {
         TooltipMenuItem(tooltipMenu = TooltipMenu.Edit) {
             showEditNameDialog()

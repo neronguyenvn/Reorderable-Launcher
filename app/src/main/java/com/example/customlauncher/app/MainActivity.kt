@@ -8,16 +8,17 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import com.example.customlauncher.core.designsystem.theme.CustomLauncherTheme
 import com.example.customlauncher.feature.home.HomeScreen
 import dagger.hilt.android.AndroidEntryPoint
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Suppress("DEPRECATION")
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -28,7 +29,7 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             CustomLauncherTheme {
-                HomeScreen()
+                HomeScreen(calculateWindowSizeClass(this))
             }
         }
     }
@@ -50,4 +51,3 @@ class MainActivity : ComponentActivity() {
         return mode == AppOpsManager.MODE_ALLOWED
     }
 }
-

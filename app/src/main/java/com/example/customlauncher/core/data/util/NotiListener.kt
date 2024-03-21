@@ -3,17 +3,17 @@ package com.example.customlauncher.core.data.util
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import com.example.customlauncher.core.common.coroutine.di.ApplicationScope
-import com.example.customlauncher.core.data.ApplicationRepository
+import com.example.customlauncher.core.data.AppRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class NotificationListener : NotificationListenerService() {
+class NotiListener : NotificationListenerService() {
 
     @Inject
-    lateinit var appRepo: ApplicationRepository
+    lateinit var appRepo: AppRepository
 
     @Inject
     @ApplicationScope
@@ -48,7 +48,7 @@ class NotificationListener : NotificationListenerService() {
 
     private fun requestApplicationListUpdate(notifications: List<StatusBarNotification>) {
         appScope.launch {
-            appRepo.handleNotifications(notifications)
+            appRepo.handleNotis(notifications)
         }
     }
 }
