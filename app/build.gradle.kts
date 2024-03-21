@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.runtimeCompose)
+    implementation(libs.androidx.compose.material3.windowSizeClass)
 
     // Coil for Image Loading
     implementation(libs.coil.compose)
