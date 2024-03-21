@@ -72,4 +72,15 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+
+
+    //Load api
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.okhttp)
+
+    //Load object json
+    implementation(libs.gson)
+
+    //Load gif
+    implementation(libs.gif)
 }

@@ -22,10 +22,14 @@ object DatabaseModule {
         context,
         RoomClDatabase::class.java,
         "cl-database"
-    ).build()
+    ).addMigrations(RoomClDatabase.migration_from_1_to_2).build()
 
     @Provides
     fun providesApplicationDao(
         database: RoomClDatabase
     ) = database.applicationDao()
+    @Provides
+    fun providesCompanyApplicationDao(
+        database: RoomClDatabase
+    ) = database.companyApplicationDao()
 }

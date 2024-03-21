@@ -13,7 +13,6 @@ import com.example.customlauncher.core.model.Application.UserApp
 
 @Entity(
     tableName = "UserApp",
-    indices = [Index("packageName", unique = true)]
 )
 data class UserAppEntity(
     val name: String,
