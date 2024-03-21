@@ -1,12 +1,15 @@
 package com.example.customlauncher.core.data
 
 import android.service.notification.StatusBarNotification
+import com.example.customlauncher.core.model.App.CompanyApp
 import com.example.customlauncher.core.model.App.UserApp
 import kotlinx.coroutines.flow.Flow
 
 interface AppRepository {
 
-    fun getAppsStream(): Flow<Map<Int, List<UserApp>>>
+    fun getUserAppsStream(): Flow<Map<Int, List<UserApp>>>
+
+    fun getCompanyAppsStream(): Flow<List<CompanyApp>>
 
     suspend fun refreshApps()
 

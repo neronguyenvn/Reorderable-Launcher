@@ -30,7 +30,9 @@ import com.example.customlauncher.core.designsystem.component.reorderablelazygri
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.rememberReorderableLazyGridState
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.reorderable
 import com.example.customlauncher.core.designsystem.util.noRippleClickable
+import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.model.App.UserApp
+import com.example.customlauncher.core.ui.appitem.CompanyAppItem
 import com.example.customlauncher.core.ui.appitem.UserAppItem
 import com.example.customlauncher.core.ui.pageslider.PageSlider
 import com.example.customlauncher.feature.home.HomeScreenEvent.MoveApp
@@ -52,7 +54,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
     val columns = when (windowSizeClass.widthSizeClass) {
         WindowWidthSizeClass.Compact -> 5
         WindowWidthSizeClass.Medium -> 7
@@ -108,7 +109,7 @@ fun HomeScreen(
 }
 
 private fun LazyGridScope.homeScreenItems(
-    apps: List<UserApp>,
+    apps: List<App>,
     selectedPackageName: String?,
     gridState: ReorderableLazyGridState,
     itemHeight: Dp,
@@ -119,14 +120,18 @@ private fun LazyGridScope.homeScreenItems(
             reorderableState = gridState,
             key = app.packageName,
         ) { isDragging ->
-            UserAppItem(
-                app = app,
-                isSelected = selectedPackageName == app.packageName,
-                gridState = gridState,
-                isDragging = isDragging,
-                eventSink = eventSink,
-                modifier = Modifier.height(itemHeight)
-            )
+            when (app) {
+                is UserApp -> UserAppItem(
+                    app = app,
+                    isSelected = selectedPackageName == app.packageName,
+                    gridState = gridState,
+                    isDragging = isDragging,
+                    eventSink = eventSink,
+                    modifier = Modifier.height(itemHeight)
+                )
+
+                is App.CompanyApp -> CompanyAppItem(app)
+            }
         }
     }
 }

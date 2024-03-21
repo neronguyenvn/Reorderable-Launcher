@@ -6,29 +6,44 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import com.example.customlauncher.core.common.coroutine.ClDispatcher.IO
+import com.example.customlauncher.core.common.coroutine.Dispatcher
 import com.example.customlauncher.core.data.AppRepository
 import com.example.customlauncher.core.data.util.asApplicationEntity
 import com.example.customlauncher.core.data.util.packageName
-import com.example.customlauncher.core.database.ApplicationDao
+import com.example.customlauncher.core.database.CompanyAppDao
+import com.example.customlauncher.core.database.UserAppDao
 import com.example.customlauncher.core.database.model.PageCount
-import com.example.customlauncher.core.database.model.asUserApp
+import com.example.customlauncher.core.database.model.asExternalModel
 import com.example.customlauncher.core.database.model.canUninstall
 import com.example.customlauncher.core.database.model.isInstalledAndUpToDate
 import com.example.customlauncher.core.designsystem.util.asBitmap
+import com.example.customlauncher.core.model.App.CompanyApp
 import com.example.customlauncher.core.model.App.UserApp
+import com.example.customlauncher.core.network.ClNetworkDataSource
+import com.example.customlauncher.core.network.model.asEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class OfflineFirstAppRepository @Inject constructor(
-    private val appDao: ApplicationDao,
+    private val network: ClNetworkDataSource,
+    private val userAppDao: UserAppDao,
+    private val companyAppDao: CompanyAppDao,
 
     @ApplicationContext
     private val context: Context,
+
+    @Dispatcher(IO)
+    private val ioDispatcher: CoroutineDispatcher
 ) : AppRepository {
 
     private val pm = context.packageManager
@@ -44,11 +59,11 @@ class OfflineFirstAppRepository @Inject constructor(
 
     private val _gridCount = MutableStateFlow(0)
 
-    override fun getAppsStream(): Flow<Map<Int, List<UserApp>>> {
-        return appDao.observeAll().map { list ->
+    override fun getUserAppsStream(): Flow<Map<Int, List<UserApp>>> {
+        return userAppDao.observeAll().map { list ->
             list.groupBy { app -> app.page }.mapValues { entityList ->
                 entityList.value.sortedBy { it.index }.mapNotNull { entity ->
-                    entity.asUserApp(
+                    entity.asExternalModel(
                         icon = resolveInfo[entity.packageName]?.loadIcon(pm)?.asBitmap(),
                         canUninstall = entity.canUninstall(pm)
                     )
@@ -57,62 +72,98 @@ class OfflineFirstAppRepository @Inject constructor(
         }
     }
 
+    override fun getCompanyAppsStream(): Flow<List<CompanyApp>> {
+        return companyAppDao.observeAll().map { list ->
+            list.sortedBy { it.index }.map { entity ->
+                entity.asExternalModel()
+            }
+        }
+    }
+
     private val refreshApplicationMutex = Mutex()
     override suspend fun refreshApps() {
         refreshApplicationMutex.lock()
 
-        val dbApps = appDao.observeAll().first().associateBy { it.packageName }
-        var latestIndex = appDao.getLatestIndex()
+        withContext(ioDispatcher) {
+            launch {
+                val companyApps = async { network.getCompanyApps() }
+
+                val dbApps = companyAppDao.observeAll().first().associateBy { it.id }
+                var latestIndex = companyAppDao.getLatestIndex()
+
+                companyApps.await().apps.forEach {
+                    companyAppDao.upsert(
+                        it.asEntity(
+                            index = dbApps[it.id]?.index ?: ++latestIndex,
+                            page = 0,
+                            isFavorite = false
+                        )
+                    )
+                }
+                companyApps.await().favorites.forEach {
+                    companyAppDao.upsert(
+                        it.asEntity(
+                            index = dbApps[it.id]?.index ?: ++latestIndex,
+                            page = 0,
+                            isFavorite = false
+                        )
+                    )
+                }
+            }
+        }
+
+        val dbApps = userAppDao.observeAll().first().associateBy { it.packageName }
+        var latestIndex = userAppDao.getLatestIndex()
 
         val gridCount = _gridCount.first { it != 0 }
-        val pageCounts = appDao.getPageCounts().toMutableList()
+        val pageCounts = userAppDao.getPageCounts().toMutableList()
 
         val currentApps = resolveInfo.values.mapIndexed { index, info ->
             info.asApplicationEntity(
                 packageManager = pm,
                 index = dbApps[info.packageName]?.index ?: ++latestIndex,
                 page = dbApps[info.packageName]?.page ?: if (pageCounts.isEmpty()) {
-                    index / gridCount
+                    index / gridCount + 1
                 } else calculatePage(gridCount, pageCounts)
             )
         }
 
         for (app in currentApps) {
-            if (!app.isInstalledAndUpToDate(appDao)) {
-                appDao.upsert(app)
+            if (!app.isInstalledAndUpToDate(userAppDao)) {
+                userAppDao.upsert(app)
             } else {
                 Log.d("neronguyenvn", "UserApp ${app.packageName} is up to date")
             }
         }
-        appDao.deleteUninstalledUserApp(currentApps.map { it.packageName })
+        userAppDao.deleteUninstalledUserApp(currentApps.map { it.packageName })
 
         usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_WEEKLY,
             0,
             System.currentTimeMillis()
         ).forEach {
-            appDao.updateUsageTime(it.totalTimeInForeground, it.packageName)
+            userAppDao.updateUsageTime(it.totalTimeInForeground, it.packageName)
         }
 
         refreshApplicationMutex.unlock()
     }
 
     override suspend fun editAppName(newName: String, app: UserApp) {
-        appDao.updateName(newName, app.packageName)
+        userAppDao.updateName(newName, app.packageName)
     }
 
     private val handleNotificationsMutex = Mutex()
     override suspend fun handleNotis(notifications: List<StatusBarNotification>) {
         handleNotificationsMutex.lock()
-        appDao.unsetAllNotificationCount()
+        userAppDao.unsetAllNotificationCount()
         notifications.groupingBy { it.packageName }.eachCount().forEach {
-            appDao.updateNotificationCount(it.value, it.key)
+            userAppDao.updateNotificationCount(it.value, it.key)
         }
         handleNotificationsMutex.unlock()
     }
 
     override suspend fun moveApp(packageName: String, toIndex: Int) {
-        appDao.updateIndexByPackageName(packageName, toIndex)
+        userAppDao.updateIndexByPackageName(packageName, toIndex)
     }
 
     override fun updateGridCount(value: Int) {

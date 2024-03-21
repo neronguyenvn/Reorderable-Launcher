@@ -28,4 +28,9 @@ object DatabaseModule {
     fun providesApplicationDao(
         database: RoomClDatabase
     ) = database.applicationDao()
+
+    @Provides
+    fun providesCompanyApplicationDao(
+        database: RoomClDatabase
+    ) = database.companyApplicationDao()
 }

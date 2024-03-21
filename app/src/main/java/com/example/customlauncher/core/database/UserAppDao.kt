@@ -8,7 +8,7 @@ import com.example.customlauncher.core.database.model.UserAppEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface ApplicationDao {
+interface UserAppDao {
 
     @Query("SELECT * FROM UserApp")
     fun observeAll(): Flow<List<UserAppEntity>>

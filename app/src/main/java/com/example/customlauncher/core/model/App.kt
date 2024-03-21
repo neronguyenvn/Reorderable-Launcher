@@ -5,7 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.Settings
-import androidx.annotation.DrawableRes
+import com.example.customlauncher.core.model.App.UserApp
 
 
 sealed class App {
@@ -14,35 +14,37 @@ sealed class App {
 
     data class CompanyApp(
         val name: String,
-        override val packageName: String,
-
-        @DrawableRes
-        val iconId: Int
+        val version: String,
+        val urlWeb: String,
+        val logo: String,
+        val type: Long,
+        val isFavorite: Boolean,
+        override val packageName: String
     ) : App()
 
     data class UserApp(
         val name: String,
-        override val packageName: String,
         val version: String,
         val icon: Bitmap,
         val canUninstall: Boolean,
-        val notificationCount: Int
+        val notificationCount: Int,
+        override val packageName: String,
     ) : App()
 }
 
-fun App.UserApp.launch(context: Context) {
+fun UserApp.launch(context: Context) {
     val intent = context.packageManager.getLaunchIntentForPackage(packageName) ?: return
     context.startActivity(intent)
 }
 
-fun App.UserApp.showInfo(context: Context) {
+fun UserApp.showInfo(context: Context) {
     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
         data = Uri.parse("package:$packageName")
         context.startActivity(this)
     }
 }
 
-fun App.UserApp.uninstall(context: Context) {
+fun UserApp.uninstall(context: Context) {
     Intent(Intent.ACTION_DELETE).apply {
         data = Uri.parse("package:$packageName")
         context.startActivity(this)
