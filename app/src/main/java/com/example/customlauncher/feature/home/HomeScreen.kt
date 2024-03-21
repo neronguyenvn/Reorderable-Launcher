@@ -39,6 +39,7 @@ import com.example.customlauncher.feature.home.HomeScreenEvent.MoveApp
 import com.example.customlauncher.feature.home.HomeScreenEvent.SelectToShowTooltip
 import com.example.customlauncher.feature.home.HomeScreenEvent.StartDrag
 import com.example.customlauncher.feature.home.HomeScreenEvent.StopDrag
+import kotlin.math.roundToInt
 
 sealed interface HomeScreenEvent {
     data class SelectToShowTooltip(val userApp: UserApp?) : HomeScreenEvent
@@ -61,7 +62,7 @@ fun HomeScreen(
         else -> throw Exception()
     }
     val rows = LocalConfiguration.current.run {
-        screenHeightDp / (screenWidthDp / columns) - 2
+        screenHeightDp / (screenWidthDp * 1.5 / columns).roundToInt()
     }
     var itemHeight by remember { mutableStateOf(0.dp) }
 
@@ -130,7 +131,10 @@ private fun LazyGridScope.homeScreenItems(
                     modifier = Modifier.height(itemHeight)
                 )
 
-                is App.CompanyApp -> CompanyAppItem(app)
+                is App.CompanyApp -> CompanyAppItem(
+                    app = app,
+                    modifier = Modifier.height(itemHeight)
+                )
             }
         }
     }
