@@ -1,6 +1,8 @@
 package com.example.customlauncher.feature.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +13,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,9 +26,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,7 +52,7 @@ import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.model.App.UserApp
 import com.example.customlauncher.core.ui.appitem.CompanyAppItem
 import com.example.customlauncher.core.ui.appitem.UserAppItem
-import com.example.customlauncher.core.ui.pageslider.PageSlider
+import com.example.customlauncher.core.ui.pageslider.PageIndicator
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnCurrentPageChange
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragMove
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStart
@@ -69,6 +77,7 @@ sealed interface HomeScreenEvent {
         HomeScreenEvent
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     windowSizeClass: WindowSizeClass,
@@ -94,8 +103,6 @@ fun HomeScreen(
     }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var itemHeight by remember { mutableStateOf(0.dp) }
-
     val state = rememberReorderableLazyGridState(
         onMove = { from, to -> viewModel.onEvent(OnDragMove(from, to)) },
         onDragStart = { _, _, _ -> viewModel.onEvent(OnDragStart) },
@@ -109,32 +116,43 @@ fun HomeScreen(
             modifier = Modifier.noRippleClickable { viewModel.onEvent(OnUserAppLongClick(null)) }
         ) { paddings ->
             val uiDataState = uiState as HomeUiState.HomeData
-            PageSlider(
-                pageCount = uiDataState.appPages.size,
-                modifier = Modifier.padding(paddings),
-                onHeightChange = { itemHeight = it / rows },
-                onPageChange = { viewModel.onEvent(OnCurrentPageChange(it)) },
-                topContent = {
-                    AnimatedVisibility(visible = uiDataState.isMoving) {
-                        Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                            Button(onClick = { viewModel.onEvent(OnMovingSelect(false)) }) {
-                                Text("Cancel")
-                            }
-                            Spacer(modifier = Modifier.weight(1f))
-                            Button(onClick = { /*TODO*/ }) {
-                                Text("Move Here")
-                            }
+            val pagerState = rememberPagerState { uiDataState.appPages.size }
+
+            LaunchedEffect(pagerState) {
+                snapshotFlow { pagerState.currentPage }.collect { page ->
+                    viewModel.onEvent(OnCurrentPageChange(page))
+                }
+            }
+
+            Column(Modifier.padding(paddings)) {
+                AnimatedVisibility(visible = uiDataState.isMoving) {
+                    Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        Button(onClick = { viewModel.onEvent(OnMovingSelect(false)) }) {
+                            Text("Cancel")
+                        }
+                        Spacer(modifier = Modifier.weight(1f))
+                        Button(onClick = { /*TODO*/ }) {
+                            Text("Move Here")
                         }
                     }
                 }
-            ) { index ->
-                HomeDataUi(
-                    uiState = uiDataState,
-                    columns = columns,
-                    pageIndex = index,
-                    itemHeight = itemHeight,
-                    state = state,
-                    onEvent = viewModel::onEvent
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    AppGridUi(
+                        uiState = uiDataState,
+                        columns = columns,
+                        rows = rows,
+                        pageIndex = it,
+                        state = state,
+                        onEvent = viewModel::onEvent
+                    )
+                }
+                PageIndicator(
+                    index = pagerState.currentPage,
+                    count = uiDataState.appPages.size,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
             }
         }
@@ -142,20 +160,28 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeDataUi(
+private fun AppGridUi(
     uiState: HomeUiState.HomeData,
     columns: Int,
+    rows: Int,
     pageIndex: Int,
-    itemHeight: Dp,
     state: ReorderableLazyGridState,
     onEvent: (HomeScreenEvent) -> Unit
 ) {
+    val density = LocalDensity.current
+    var itemHeight by remember { mutableStateOf(0.dp) }
+
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         contentPadding = PaddingValues(horizontal = 16.dp),
         state = state.gridState,
         modifier = Modifier
             .fillMaxSize()
+            .onGloballyPositioned {
+                itemHeight = with(density) {
+                    it.size.height.toDp() / rows
+                }
+            }
             .reorderable(state)
     ) {
         homeScreenItems(

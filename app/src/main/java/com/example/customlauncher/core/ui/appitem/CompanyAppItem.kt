@@ -78,7 +78,6 @@ fun CompanyAppItem(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = modifier
-                .fillMaxSize()
                 .clip(RoundedCornerShape(15))
                 .detectPressOrDragAndReorder(
                     state = gridState,
