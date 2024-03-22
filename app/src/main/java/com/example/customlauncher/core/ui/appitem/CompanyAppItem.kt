@@ -3,6 +3,7 @@ package com.example.customlauncher.core.ui.appitem
 import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,9 +36,14 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.detectPressOrDragAndReorder
+import com.example.customlauncher.core.designsystem.util.conditional
 import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.model.TooltipMenu
 import com.example.customlauncher.feature.home.HomeScreenEvent
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnItemCheck
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnMovingSelect
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +59,8 @@ fun CompanyAppItem(
 ) {
     var showWebView by remember { mutableStateOf(false) }
     val tooltipState = rememberTooltipState()
+    val coroutineScope = rememberCoroutineScope()
+
     val imageRequest = ImageRequest.Builder(LocalContext.current)
         .data(app.logo)
         .memoryCacheKey(app.packageName)
@@ -66,22 +75,33 @@ fun CompanyAppItem(
     TooltipBox(
         positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
         state = tooltipState,
+        enableUserInput = false,
         tooltip = {
             TooltipBoxUi(
                 changeToMovingUi = {
-                    onEvent(HomeScreenEvent.OnItemCheck(true, pageIndex, index))
-                    onEvent(HomeScreenEvent.OnMovingSelect(true))
+                    onEvent(OnItemCheck(true, pageIndex, index))
+                    onEvent(OnMovingSelect(true))
                 },
-            ) { onEvent(HomeScreenEvent.OnUserAppLongClick(null)) }
+            ) { onEvent(OnUserAppLongClick(null)) }
         }) {
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = modifier
+                .fillMaxSize()
                 .clip(RoundedCornerShape(15))
-                .detectPressOrDragAndReorder(
-                    state = gridState,
-                    onClick = { showWebView = true }
+                .conditional(
+                    isMovingUi,
+                    ifFalse = {
+                        detectPressOrDragAndReorder(
+                            state = gridState,
+                            onClick = { showWebView = true },
+                            onLongClick = { coroutineScope.launch { tooltipState.show() } }
+                        )
+                    },
+                    ifTrue = {
+                        clickable { onEvent(OnItemCheck(!app.isChecked, pageIndex, index)) }
+                    }
                 )
         ) {
             BadgedBox(badge = {
@@ -89,7 +109,7 @@ fun CompanyAppItem(
                     Checkbox(
                         checked = app.isChecked,
                         onCheckedChange = {
-                            onEvent(HomeScreenEvent.OnItemCheck(it, pageIndex, index))
+                            onEvent(OnItemCheck(it, pageIndex, index))
                         }
                     )
                 }

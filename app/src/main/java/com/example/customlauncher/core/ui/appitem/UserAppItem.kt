@@ -1,6 +1,7 @@
 package com.example.customlauncher.core.ui.appitem
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +46,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.detectPressOrDragAndReorder
+import com.example.customlauncher.core.designsystem.util.conditional
 import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.model.TooltipMenu
 import com.example.customlauncher.core.model.launch
@@ -52,6 +54,7 @@ import com.example.customlauncher.core.model.showInfo
 import com.example.customlauncher.core.model.uninstall
 import com.example.customlauncher.feature.home.HomeScreenEvent
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnEditNameConfirm
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnItemCheck
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnMovingSelect
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
 
@@ -80,10 +83,18 @@ fun UserAppItem(
     }
 
     Box(
-        modifier = modifier.detectPressOrDragAndReorder(
-            state = gridState,
-            onLongClick = { onEvent(OnUserAppLongClick(app)) },
-            onClick = { app.launch(context) }
+        modifier = modifier.conditional(
+            isUiMoving,
+            ifFalse = {
+                detectPressOrDragAndReorder(
+                    state = gridState,
+                    onLongClick = { onEvent(OnUserAppLongClick(app)) },
+                    onClick = { app.launch(context) }
+                )
+            },
+            ifTrue = {
+                clickable { onEvent(OnItemCheck(!app.isChecked, pageIndex, index)) }
+            }
         )
     ) {
         TooltipBox(
@@ -95,7 +106,7 @@ fun UserAppItem(
                     app = app,
                     showEditNameDialog = { showEditNameDialog = true },
                     changeToMovingUi = {
-                        onEvent(HomeScreenEvent.OnItemCheck(true, pageIndex, index))
+                        onEvent(OnItemCheck(true, pageIndex, index))
                         onEvent(OnMovingSelect(true))
                     },
                     cancelSelected = { onEvent(OnUserAppLongClick(null)) },
@@ -105,7 +116,7 @@ fun UserAppItem(
                 app = app,
                 isUiMoving = isUiMoving,
             ) {
-                onEvent(HomeScreenEvent.OnItemCheck(it, pageIndex, index))
+                onEvent(OnItemCheck(it, pageIndex, index))
             }
         }
     }
