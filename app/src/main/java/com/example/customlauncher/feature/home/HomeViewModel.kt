@@ -5,11 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.example.customlauncher.core.data.AppRepository
 import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.model.App.UserApp
-import com.example.customlauncher.feature.home.HomeScreenEvent.EditName
-import com.example.customlauncher.feature.home.HomeScreenEvent.MoveApp
-import com.example.customlauncher.feature.home.HomeScreenEvent.SelectToShowTooltip
-import com.example.customlauncher.feature.home.HomeScreenEvent.StartDrag
-import com.example.customlauncher.feature.home.HomeScreenEvent.StopDrag
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnCurrentPageChange
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragMove
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStart
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStop
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnEditNameConfirm
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnGridCountChange
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnSetup
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
 import com.example.customlauncher.feature.home.HomeUiState.HomeData
 import com.example.customlauncher.feature.home.HomeUiState.Loading
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +24,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -34,7 +36,6 @@ sealed interface HomeUiState {
     data class HomeData(
         val appPages: Map<Int, List<App>> = emptyMap(),
         val selectedApp: UserApp? = null,
-        val eventSink: (HomeScreenEvent) -> Unit = {}
     ) : HomeUiState
 }
 
@@ -47,25 +48,43 @@ class HomeViewModel @Inject constructor(
     private val _selectedAppByLongClick = MutableStateFlow<UserApp?>(null)
     private val selected get() = _selectedAppByLongClick.value!!
 
-    private var collectAppsJob: Job? = null
-    private var updateAppPositionJob: Job? = null
     private val _appPages = MutableStateFlow<Map<Int, List<App>>>(emptyMap())
     private val appPages get() = _appPages.value
 
     private val _currentPage = MutableStateFlow(0)
-
     private val _isLoading = MutableStateFlow(true)
 
-    private val eventSink: (HomeScreenEvent) -> Unit = { event ->
-        when (event) {
-            is SelectToShowTooltip -> _selectedAppByLongClick.value = event.userApp
+    private var collectAppsJob: Job? = null
+    private var updateAppPositionJob: Job? = null
 
-            is EditName -> viewModelScope.launch {
+    val uiState = combine(
+        _appPages,
+        _selectedAppByLongClick,
+        _isLoading
+    ) { pages, selected, loading ->
+        if (loading) return@combine Loading
+        HomeData(
+            appPages = pages,
+            selectedApp = selected,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        initialValue = Loading,
+        started = SharingStarted.WhileSubscribed(5000)
+    )
+
+    fun onEvent(event: HomeScreenEvent) {
+        when (event) {
+            is OnSetup -> setupInitialState()
+
+            is OnUserAppLongClick -> _selectedAppByLongClick.value = event.userApp
+
+            is OnEditNameConfirm -> viewModelScope.launch {
                 appRepo.editAppName(event.value, selected)
                 _selectedAppByLongClick.value = null
             }
 
-            is MoveApp -> viewModelScope.launch {
+            is OnDragMove -> viewModelScope.launch {
                 val currentPage = _currentPage.first()
                 val newAppPages = appPages.mapValues {
                     if (it.key == currentPage) {
@@ -77,9 +96,9 @@ class HomeViewModel @Inject constructor(
                 _appPages.value = newAppPages
             }
 
-            is StartDrag -> cancelAllJobs()
+            is OnDragStart -> cancelAllJobs()
 
-            is StopDrag -> updateAppPositionJob = viewModelScope.launch {
+            is OnDragStop -> updateAppPositionJob = viewModelScope.launch {
                 delay(ITEM_POSITION_SET_DELAY)
                 appPages[_currentPage.first()]?.let { list ->
                     for (i in minOf(event.from, event.to)..list.lastIndex) {
@@ -91,30 +110,23 @@ class HomeViewModel @Inject constructor(
                     startCollect()
                 }
             }
+
+            is OnGridCountChange -> appRepo.updateGridCount(event.value)
+
+            is OnCurrentPageChange -> _currentPage.value = event.value
         }
     }
 
-    val uiState = combine(
-        _appPages,
-        _selectedAppByLongClick,
-        _isLoading
-    ) { pages, selected, loading ->
-
-        if (loading) return@combine Loading
-        HomeData(
-            appPages = pages,
-            selectedApp = selected,
-            eventSink = eventSink
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        initialValue = Loading,
-        started = SharingStarted.WhileSubscribed(5000)
-    )
-
-    fun updateGridCount(value: Int) = appRepo.updateGridCount(value)
-
-    fun updateCurrentPage(value: Int) = _currentPage.update { value }
+    private fun setupInitialState() = viewModelScope.launch {
+        val refreshJob = launch {
+            launch { appRepo.refreshUserApps() }
+            launch { appRepo.refreshCompanyApps() }
+        }
+        refreshJob.join()
+        startCollect()
+        delay(ITEM_POSITION_SET_DELAY)
+        _isLoading.value = false
+    }
 
     private fun startCollect() {
         collectAppsJob = combine(
@@ -130,16 +142,5 @@ class HomeViewModel @Inject constructor(
         collectAppsJob = null
         updateAppPositionJob?.cancel()
         updateAppPositionJob = null
-    }
-
-    fun setupInitialState() = viewModelScope.launch {
-        val refreshJob = launch {
-            launch { appRepo.refreshUserApps() }
-            launch { appRepo.refreshCompanyApps() }
-        }
-        refreshJob.join()
-        startCollect()
-        delay(ITEM_POSITION_SET_DELAY)
-        _isLoading.value = false
     }
 }
