@@ -1,6 +1,5 @@
 package com.example.customlauncher.feature.home
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -9,7 +8,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -19,7 +17,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
@@ -27,6 +24,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.example.customlauncher.R
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ItemPosition
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableItem
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
@@ -84,6 +86,7 @@ fun HomeScreen(
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var itemHeight by remember { mutableStateOf(0.dp) }
+
     val state = rememberReorderableLazyGridState(
         onMove = { from, to -> viewModel.onEvent(OnDragMove(from, to)) },
         canDragOver = { _, _ -> true },
@@ -93,7 +96,7 @@ fun HomeScreen(
     )
 
     when (uiState) {
-        is HomeUiState.Loading -> EmCodeODay()
+        is HomeUiState.Loading -> LoadingEffect()
         is HomeUiState.HomeData -> Scaffold(
             containerColor = Color.Transparent,
             modifier = Modifier.noRippleClickable { viewModel.onEvent(OnUserAppLongClick(null)) }
@@ -177,8 +180,12 @@ private fun LazyGridScope.homeScreenItems(
 }
 
 @Composable
-fun EmCodeODay() {
-    Box(modifier = Modifier.fillMaxSize(), Alignment.Center) {
-        LinearProgressIndicator()
-    }
+private fun LoadingEffect() {
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
+    val progress by animateLottieCompositionAsState(composition)
+    LottieAnimation(
+        composition = composition,
+        progress = { progress },
+        modifier = Modifier.fillMaxSize()
+    )
 }

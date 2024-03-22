@@ -78,4 +78,7 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.logging)
     implementation(libs.ktor.serialization.json)
+
+    // Lottie for Animation
+    implementation(libs.lottie)
 }

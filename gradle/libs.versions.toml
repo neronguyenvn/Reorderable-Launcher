@@ -12,6 +12,7 @@ hilt = "2.51"
 kotlin = "1.9.22"
 ksp = "1.9.22-1.0.18"
 ktor="2.3.9"
+lottie="6.4.0"
 room = "2.6.1"
 
 [libraries]
@@ -29,6 +30,7 @@ hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", v
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktor" }
 ktor-serialization-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
+lottie = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
