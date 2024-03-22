@@ -18,6 +18,6 @@ interface CompanyAppDao {
     @Query("SELECT MAX(`index`) FROM UserApp")
     suspend fun getLatestIndex(): Int
 
-    @Query("UPDATE CompanyApp SET `index` = :toIndex WHERE id = :id")
-    suspend fun updateIndexById(toIndex: Int, id: String)
+    @Query("UPDATE CompanyApp SET `index` = :toIndex WHERE packageName = :packageName")
+    suspend fun updateIndexById(toIndex: Int, packageName: String)
 }

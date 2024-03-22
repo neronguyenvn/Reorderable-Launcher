@@ -129,7 +129,7 @@ class OfflineFirstAppRepository @Inject constructor(
         withContext(ioDispatcher) {
             val companyApps = async { network.getCompanyApps() }
 
-            val dbApps = companyAppDao.observeAll().first().associateBy { it.id }
+            val dbApps = companyAppDao.observeAll().first().associateBy { it.packageName }
             var latestIndex = companyAppDao.getLatestIndex()
 
             companyApps.await().apps.forEach {

@@ -23,9 +23,6 @@ data class NetworkCompanyApp(
     @SerialName("full_screen")
     val fullScreen: Boolean? = null,
 
-    @SerialName("status_bar")
-    val statusBar: StatusBar? = null,
-
     val type: Long,
     val urlScript: String? = null,
     val page: Long,
@@ -37,16 +34,6 @@ data class NetworkCompanyApp(
     val urlLoadingScreen: String? = null
 )
 
-@Serializable
-enum class StatusBar {
-
-    @SerialName("hide")
-    Hide,
-
-    @SerialName("show")
-    Show,
-}
-
 fun NetworkCompanyApp.asEntity(index: Int, page: Int, isFavorite: Boolean) = CompanyAppEntity(
     name = name,
     version = version,
@@ -56,5 +43,5 @@ fun NetworkCompanyApp.asEntity(index: Int, page: Int, isFavorite: Boolean) = Com
     index = index,
     page = page,
     isFavorite = isFavorite,
-    id = id,
+    packageName = id,
 )

@@ -16,7 +16,7 @@ data class CompanyAppEntity(
     val isFavorite: Boolean,
 
     @PrimaryKey
-    val id: String
+    val packageName: String
 )
 
 fun CompanyAppEntity.asExternalModel() = CompanyApp(
@@ -26,5 +26,5 @@ fun CompanyAppEntity.asExternalModel() = CompanyApp(
     logo = logo,
     type = type,
     isFavorite = isFavorite,
-    packageName = id
+    packageName = packageName
 )
