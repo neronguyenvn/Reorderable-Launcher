@@ -33,6 +33,13 @@ sealed class App {
         override val isChecked: Boolean = false,
         override val packageName: String,
     ) : App()
+
+    fun editChecked(value: Boolean): App {
+        return when (this) {
+            is UserApp -> this.copy(isChecked = value)
+            is CompanyApp -> this.copy(isChecked = value)
+        }
+    }
 }
 
 fun UserApp.launch(context: Context) {

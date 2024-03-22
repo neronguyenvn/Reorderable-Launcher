@@ -119,16 +119,21 @@ class HomeViewModel @Inject constructor(
 
             is OnCurrentPageChange -> _currentPage.value = event.value
 
-            is HomeScreenEvent.OnMovingSelect -> _isMovingSelect.value = true
+            is HomeScreenEvent.OnMovingSelect -> {
+                _isMovingSelect.value = event.value
+                if (!event.value) {
+                    val newAppPages = appPages.mapValues {
+                        it.value.map { app -> app.editChecked(false) }
+                    }
+                    _appPages.value = newAppPages
+                }
+            }
 
             is HomeScreenEvent.OnItemCheck -> {
                 val newAppPages = appPages.mapValues {
                     if (it.key == event.pageIndex) {
                         it.value.toMutableList().apply {
-                            this[event.index] = when (val app = this[event.index]) {
-                                is UserApp -> app.copy(isChecked = event.isChecked)
-                                is App.CompanyApp -> app.copy(isChecked = event.isChecked)
-                            }
+                            this[event.index] = this[event.index].editChecked(event.isChecked)
                         }
                     } else it.value
                 }

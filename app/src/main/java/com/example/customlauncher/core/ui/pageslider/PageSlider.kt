@@ -19,6 +19,7 @@ fun PageSlider(
     modifier: Modifier = Modifier,
     onHeightChange: (Dp) -> Unit,
     onPageChange: (Int) -> Unit,
+    topContent: @Composable () -> Unit,
     content: @Composable (Int) -> Unit
 ) {
     val pagerState = rememberPagerState { pageCount }
@@ -29,6 +30,7 @@ fun PageSlider(
     }
 
     Column(modifier) {
+        topContent()
         HorizontalPager(
             state = pagerState,
             pageContent = { index -> content(index) },
