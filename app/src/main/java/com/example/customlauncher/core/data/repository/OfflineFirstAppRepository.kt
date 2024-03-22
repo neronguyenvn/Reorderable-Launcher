@@ -29,7 +29,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -85,36 +84,8 @@ class OfflineFirstAppRepository @Inject constructor(
     }
 
     private val refreshApplicationMutex = Mutex()
-    override suspend fun refreshApps() {
+    override suspend fun refreshUserApps() {
         refreshApplicationMutex.lock()
-
-        withContext(ioDispatcher) {
-            launch {
-                val companyApps = async { network.getCompanyApps() }
-
-                val dbApps = companyAppDao.observeAll().first().associateBy { it.id }
-                var latestIndex = companyAppDao.getLatestIndex()
-
-                companyApps.await().apps.forEach {
-                    companyAppDao.upsert(
-                        it.asEntity(
-                            index = dbApps[it.id]?.index ?: ++latestIndex,
-                            page = 0,
-                            isFavorite = false
-                        )
-                    )
-                }
-                companyApps.await().favorites.forEach {
-                    companyAppDao.upsert(
-                        it.asEntity(
-                            index = dbApps[it.id]?.index ?: ++latestIndex,
-                            page = 0,
-                            isFavorite = false
-                        )
-                    )
-                }
-            }
-        }
 
         val dbApps = userAppDao.observeAll().first().associateBy { it.packageName }
         var latestIndex = userAppDao.getLatestIndex()
@@ -150,6 +121,37 @@ class OfflineFirstAppRepository @Inject constructor(
         }
 
         refreshApplicationMutex.unlock()
+    }
+
+
+    // TODO: Need to check version to upgrade existing apps
+    override suspend fun refreshCompanyApps() {
+        withContext(ioDispatcher) {
+            val companyApps = async { network.getCompanyApps() }
+
+            val dbApps = companyAppDao.observeAll().first().associateBy { it.id }
+            var latestIndex = companyAppDao.getLatestIndex()
+
+            companyApps.await().apps.forEach {
+                companyAppDao.upsert(
+                    it.asEntity(
+                        index = dbApps[it.id]?.index ?: ++latestIndex,
+                        page = 0,
+                        isFavorite = false
+                    )
+                )
+            }
+
+            companyApps.await().favorites.forEach {
+                companyAppDao.upsert(
+                    it.asEntity(
+                        index = dbApps[it.id]?.index ?: ++latestIndex,
+                        page = 0,
+                        isFavorite = false
+                    )
+                )
+            }
+        }
     }
 
     override suspend fun editAppName(newName: String, app: UserApp) {

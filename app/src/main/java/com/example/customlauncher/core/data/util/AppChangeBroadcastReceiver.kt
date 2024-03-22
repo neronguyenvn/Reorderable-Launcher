@@ -30,7 +30,6 @@ class AppChangeBroadcastReceiver @Inject constructor(
     }
 
     init {
-        requestApplicationListUpdate()
         context.registerReceiver(receiver, IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_REPLACED)
             addAction(Intent.ACTION_PACKAGE_ADDED)
@@ -44,7 +43,7 @@ class AppChangeBroadcastReceiver @Inject constructor(
 
     private fun requestApplicationListUpdate() {
         applicationScope.launch {
-            applicationRepository.refreshApps()
+            applicationRepository.refreshUserApps()
         }
     }
 }

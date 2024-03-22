@@ -13,7 +13,9 @@ interface AppRepository {
 
     fun updateGridCount(value: Int)
 
-    suspend fun refreshApps()
+    suspend fun refreshUserApps()
+
+    suspend fun refreshCompanyApps()
 
     suspend fun editAppName(newName: String, app: UserApp)
 
