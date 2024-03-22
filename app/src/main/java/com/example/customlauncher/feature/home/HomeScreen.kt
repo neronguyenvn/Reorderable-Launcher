@@ -27,6 +27,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.example.customlauncher.R
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ItemPosition
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableItem
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
@@ -91,7 +96,7 @@ private fun HomeScreenUi(
     updateCurrentPage: (Int) -> Unit
 ) {
     when (uiState) {
-        is HomeUiState.Loading -> EmCodeODay()
+        is HomeUiState.Loading -> Loader()
         is HomeUiState.HomeData -> {
             var itemHeight by remember { mutableStateOf(0.dp) }
             val state = rememberReorderableLazyGridState(
@@ -166,8 +171,12 @@ private fun LazyGridScope.homeScreenItems(
 }
 
 @Composable
-fun EmCodeODay() {
-    Box(modifier = Modifier.fillMaxSize(), Alignment.Center) {
-        LinearProgressIndicator()
-    }
+fun Loader() {
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
+    val progress by animateLottieCompositionAsState(composition)
+    LottieAnimation(
+        composition = composition,
+        progress = { progress },
+        modifier = Modifier.fillMaxSize()
+    )
 }
