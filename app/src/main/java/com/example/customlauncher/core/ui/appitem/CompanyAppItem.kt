@@ -2,13 +2,22 @@ package com.example.customlauncher.core.ui.appitem
 
 import android.view.ViewGroup
 import android.webkit.WebView
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,42 +35,80 @@ import coil.request.ImageRequest
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.detectPressOrDragAndReorder
 import com.example.customlauncher.core.model.App
+import com.example.customlauncher.core.model.TooltipMenu
+import com.example.customlauncher.feature.home.HomeScreenEvent
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompanyAppItem(
     app: App.CompanyApp,
     gridState: ReorderableLazyGridState,
-    modifier: Modifier = Modifier
+    pageIndex: Int,
+    index: Int,
+    isDragging: Boolean,
+    isMovingUi: Boolean,
+    modifier: Modifier = Modifier,
+    onEvent: (HomeScreenEvent) -> Unit
 ) {
     var showWebView by remember { mutableStateOf(false) }
+    val tooltipState = rememberTooltipState()
     val imageRequest = ImageRequest.Builder(LocalContext.current)
         .data(app.logo)
         .memoryCacheKey(app.packageName)
         .build()
 
-    Column(
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(15))
-            .detectPressOrDragAndReorder(
-                state = gridState,
-                onClick = { showWebView = true }
+    LaunchedEffect(isDragging) {
+        if (isDragging) {
+            tooltipState.dismiss()
+        }
+    }
+
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        state = tooltipState,
+        tooltip = {
+            TooltipBoxUi(
+                changeToMovingUi = {
+                    onEvent(HomeScreenEvent.OnItemCheck(true, pageIndex, index))
+                    onEvent(HomeScreenEvent.OnMovingSelect(true))
+                },
+            ) { onEvent(HomeScreenEvent.OnUserAppLongClick(null)) }
+        }) {
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(15))
+                .detectPressOrDragAndReorder(
+                    state = gridState,
+                    onClick = { showWebView = true }
+                )
+        ) {
+            BadgedBox(badge = {
+                if (isMovingUi) {
+                    Checkbox(
+                        checked = app.isChecked,
+                        onCheckedChange = {
+                            onEvent(HomeScreenEvent.OnItemCheck(it, pageIndex, index))
+                        }
+                    )
+                }
+            }) {
+                AsyncImage(
+                    model = imageRequest,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(0.7f)
+                )
+            }
+            Text(
+                text = app.name, style = MaterialTheme.typography.labelMedium,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1
             )
-    ) {
-        AsyncImage(
-            model = imageRequest,
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(0.7f)
-        )
-        Text(
-            text = app.name, style = MaterialTheme.typography.labelMedium,
-            color = Color.White,
-            textAlign = TextAlign.Center,
-            overflow = TextOverflow.Ellipsis,
-            maxLines = 1
-        )
+        }
     }
 
     if (showWebView) {
@@ -77,5 +124,23 @@ fun CompanyAppItem(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun TooltipBoxUi(
+    changeToMovingUi: () -> Unit,
+    cancelSelected: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth(0.5f)
+            .clip(RoundedCornerShape(15))
+            .background(Color.White)
+    ) {
+        TooltipMenuItem(tooltipMenu = TooltipMenu.Move) {
+            changeToMovingUi()
+            cancelSelected()
+        }
     }
 }

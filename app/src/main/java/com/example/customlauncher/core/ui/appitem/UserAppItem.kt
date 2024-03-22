@@ -89,7 +89,6 @@ fun UserAppItem(
         TooltipBox(
             positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
             state = tooltipState,
-            enableUserInput = false,
             tooltip = {
                 TooltipBoxUi(
                     app = app,

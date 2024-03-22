@@ -146,7 +146,7 @@ private fun HomeDataUi(
                 selectedPackageName = uiState.selectedApp?.packageName,
                 gridState = state,
                 itemHeight = itemHeight,
-                isUiMoving = uiState.isMoving,
+                isMovingUi = uiState.isMoving,
                 pageIndex = pageIndex,
                 onEvent = onEvent
             )
@@ -159,7 +159,7 @@ private fun LazyGridScope.homeScreenItems(
     selectedPackageName: String?,
     gridState: ReorderableLazyGridState,
     itemHeight: Dp,
-    isUiMoving: Boolean,
+    isMovingUi: Boolean,
     pageIndex: Int,
     onEvent: (HomeScreenEvent) -> Unit,
 ) {
@@ -175,7 +175,7 @@ private fun LazyGridScope.homeScreenItems(
                     isSelected = selectedPackageName == app.packageName,
                     gridState = gridState,
                     isDragging = isDragging,
-                    isUiMoving = isUiMoving,
+                    isUiMoving = isMovingUi,
                     pageIndex = pageIndex,
                     index = index,
                     onEvent = onEvent
@@ -184,6 +184,11 @@ private fun LazyGridScope.homeScreenItems(
                 is App.CompanyApp -> CompanyAppItem(
                     app = app,
                     gridState = gridState,
+                    pageIndex = pageIndex,
+                    index = index,
+                    isDragging = isDragging,
+                    isMovingUi = isMovingUi,
+                    onEvent = onEvent
                 )
             }
         }
