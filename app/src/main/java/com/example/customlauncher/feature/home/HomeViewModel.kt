@@ -10,6 +10,8 @@ import com.example.customlauncher.feature.home.HomeScreenEvent.MoveApp
 import com.example.customlauncher.feature.home.HomeScreenEvent.SelectToShowTooltip
 import com.example.customlauncher.feature.home.HomeScreenEvent.StartDrag
 import com.example.customlauncher.feature.home.HomeScreenEvent.StopDrag
+import com.example.customlauncher.feature.home.HomeUiState.HomeData
+import com.example.customlauncher.feature.home.HomeUiState.Loading
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -25,11 +27,17 @@ import javax.inject.Inject
 
 private const val ITEM_POSITION_SET_DELAY = 400L
 
-data class HomeUiState(
-    val appPages: Map<Int, List<App>> = emptyMap(),
-    val selectedApp: UserApp? = null,
-    val eventSink: (HomeScreenEvent) -> Unit = {}
-)
+sealed interface HomeUiState {
+
+    data object Loading : HomeUiState
+
+    data class HomeData(
+        val appPages: Map<Int, List<App>> = emptyMap(),
+        val selectedApp: UserApp? = null,
+        val eventSink: (HomeScreenEvent) -> Unit = {}
+    ) : HomeUiState
+}
+
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -46,9 +54,7 @@ class HomeViewModel @Inject constructor(
 
     private val _currentPage = MutableStateFlow(0)
 
-    init {
-        startCollect()
-    }
+    private val _isLoading = MutableStateFlow(true)
 
     private val eventSink: (HomeScreenEvent) -> Unit = { event ->
         when (event) {
@@ -91,15 +97,18 @@ class HomeViewModel @Inject constructor(
     val uiState = combine(
         _appPages,
         _selectedAppByLongClick,
-    ) { pages, selected ->
-        HomeUiState(
+        _isLoading
+    ) { pages, selected, loading ->
+
+        if (loading) return@combine Loading
+        HomeData(
             appPages = pages,
             selectedApp = selected,
             eventSink = eventSink
         )
     }.stateIn(
         scope = viewModelScope,
-        initialValue = HomeUiState(),
+        initialValue = Loading,
         started = SharingStarted.WhileSubscribed(5000)
     )
 
@@ -121,5 +130,16 @@ class HomeViewModel @Inject constructor(
         collectAppsJob = null
         updateAppPositionJob?.cancel()
         updateAppPositionJob = null
+    }
+
+    fun setupInitialState() = viewModelScope.launch {
+        val refreshJob = launch {
+            launch { appRepo.refreshUserApps() }
+            launch { appRepo.refreshCompanyApps() }
+        }
+        refreshJob.join()
+        startCollect()
+        delay(ITEM_POSITION_SET_DELAY)
+        _isLoading.value = false
     }
 }
