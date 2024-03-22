@@ -11,7 +11,7 @@ import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStart
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStop
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnEditNameConfirm
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnGridCountChange
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnSetup
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnInitialSetup
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
 import com.example.customlauncher.feature.home.HomeUiState.HomeData
 import com.example.customlauncher.feature.home.HomeUiState.Loading
@@ -75,7 +75,7 @@ class HomeViewModel @Inject constructor(
 
     fun onEvent(event: HomeScreenEvent) {
         when (event) {
-            is OnSetup -> setupInitialState()
+            is OnInitialSetup -> setupInitialState()
 
             is OnUserAppLongClick -> _selectedAppByLongClick.value = event.userApp
 
