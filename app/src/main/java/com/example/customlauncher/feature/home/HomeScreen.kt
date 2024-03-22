@@ -1,5 +1,6 @@
 package com.example.customlauncher.feature.home
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -7,7 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -58,6 +59,9 @@ sealed interface HomeScreenEvent {
     data class OnDragStop(val from: Int, val to: Int) : HomeScreenEvent
     data class OnGridCountChange(val value: Int) : HomeScreenEvent
     data class OnCurrentPageChange(val value: Int) : HomeScreenEvent
+    data class OnMovingSelect(val value: Boolean) : HomeScreenEvent
+    data class OnItemCheck(val isChecked: Boolean, val pageIndex: Int, val index: Int) :
+        HomeScreenEvent
 }
 
 @Composable
@@ -89,10 +93,8 @@ fun HomeScreen(
 
     val state = rememberReorderableLazyGridState(
         onMove = { from, to -> viewModel.onEvent(OnDragMove(from, to)) },
-        canDragOver = { _, _ -> true },
         onDragStart = { _, _, _ -> viewModel.onEvent(OnDragStart) },
         onDragEnd = { from, to -> viewModel.onEvent(OnDragStop(from, to)) }
-
     )
 
     when (uiState) {
@@ -101,16 +103,17 @@ fun HomeScreen(
             containerColor = Color.Transparent,
             modifier = Modifier.noRippleClickable { viewModel.onEvent(OnUserAppLongClick(null)) }
         ) { paddings ->
+            val uiDataState = uiState as HomeUiState.HomeData
             PageSlider(
-                pageCount = (uiState as HomeUiState.HomeData).appPages.size,
+                pageCount = uiDataState.appPages.size,
                 modifier = Modifier.padding(paddings),
                 onHeightChange = { itemHeight = it / rows },
                 onPageChange = { viewModel.onEvent(OnCurrentPageChange(it)) }
             ) { index ->
                 HomeDataUi(
-                    uiState = uiState as HomeUiState.HomeData,
+                    uiState = uiDataState,
                     columns = columns,
-                    index = index,
+                    pageIndex = index,
                     itemHeight = itemHeight,
                     state = state,
                     onEvent = viewModel::onEvent
@@ -124,26 +127,30 @@ fun HomeScreen(
 private fun HomeDataUi(
     uiState: HomeUiState.HomeData,
     columns: Int,
-    index: Int,
+    pageIndex: Int,
     itemHeight: Dp,
     state: ReorderableLazyGridState,
     onEvent: (HomeScreenEvent) -> Unit
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(columns),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        state = state.gridState,
-        modifier = Modifier
-            .fillMaxSize()
-            .reorderable(state)
-    ) {
-        homeScreenItems(
-            apps = uiState.appPages[index] ?: emptyList(),
-            selectedPackageName = uiState.selectedApp?.packageName,
-            gridState = state,
-            itemHeight = itemHeight,
-            onEvent = { onEvent(it) }
-        )
+    Column {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columns),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            state = state.gridState,
+            modifier = Modifier
+                .fillMaxSize()
+                .reorderable(state)
+        ) {
+            homeScreenItems(
+                apps = uiState.appPages[pageIndex] ?: emptyList(),
+                selectedPackageName = uiState.selectedApp?.packageName,
+                gridState = state,
+                itemHeight = itemHeight,
+                isUiMoving = uiState.isMoving,
+                pageIndex = pageIndex,
+                onEvent = onEvent
+            )
+        }
     }
 }
 
@@ -152,12 +159,15 @@ private fun LazyGridScope.homeScreenItems(
     selectedPackageName: String?,
     gridState: ReorderableLazyGridState,
     itemHeight: Dp,
+    isUiMoving: Boolean,
+    pageIndex: Int,
     onEvent: (HomeScreenEvent) -> Unit,
 ) {
-    items(apps, { it.packageName }) { app ->
+    itemsIndexed(apps, { index: Int, item: App -> item.packageName }) { index, app ->
         ReorderableItem(
             reorderableState = gridState,
             key = app.packageName,
+            modifier = Modifier.height(itemHeight)
         ) { isDragging ->
             when (app) {
                 is UserApp -> UserAppItem(
@@ -165,14 +175,15 @@ private fun LazyGridScope.homeScreenItems(
                     isSelected = selectedPackageName == app.packageName,
                     gridState = gridState,
                     isDragging = isDragging,
-                    modifier = Modifier.height(itemHeight),
+                    isUiMoving = isUiMoving,
+                    pageIndex = pageIndex,
+                    index = index,
                     onEvent = onEvent
                 )
 
                 is App.CompanyApp -> CompanyAppItem(
                     app = app,
                     gridState = gridState,
-                    modifier = Modifier.height(itemHeight)
                 )
             }
         }

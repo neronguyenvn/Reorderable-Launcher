@@ -36,6 +36,7 @@ sealed interface HomeUiState {
     data class HomeData(
         val appPages: Map<Int, List<App>> = emptyMap(),
         val selectedApp: UserApp? = null,
+        val isMoving: Boolean = false
     ) : HomeUiState
 }
 
@@ -45,27 +46,30 @@ class HomeViewModel @Inject constructor(
     private val appRepo: AppRepository,
 ) : ViewModel() {
 
-    private val _selectedAppByLongClick = MutableStateFlow<UserApp?>(null)
-    private val selected get() = _selectedAppByLongClick.value!!
+    private val _selectedByLongClick = MutableStateFlow<UserApp?>(null)
+    private val selectedByLongClick get() = _selectedByLongClick.value!!
 
     private val _appPages = MutableStateFlow<Map<Int, List<App>>>(emptyMap())
     private val appPages get() = _appPages.value
 
     private val _currentPage = MutableStateFlow(0)
     private val _isLoading = MutableStateFlow(true)
+    private val _isMovingSelect = MutableStateFlow(false)
 
     private var collectAppsJob: Job? = null
     private var updateAppPositionJob: Job? = null
 
     val uiState = combine(
         _appPages,
-        _selectedAppByLongClick,
-        _isLoading
-    ) { pages, selected, loading ->
+        _selectedByLongClick,
+        _isLoading,
+        _isMovingSelect
+    ) { pages, selected, loading, isMoving ->
         if (loading) return@combine Loading
         HomeData(
             appPages = pages,
             selectedApp = selected,
+            isMoving = isMoving
         )
     }.stateIn(
         scope = viewModelScope,
@@ -77,11 +81,11 @@ class HomeViewModel @Inject constructor(
         when (event) {
             is OnInitialSetup -> setupInitialState()
 
-            is OnUserAppLongClick -> _selectedAppByLongClick.value = event.userApp
+            is OnUserAppLongClick -> _selectedByLongClick.value = event.userApp
 
             is OnEditNameConfirm -> viewModelScope.launch {
-                appRepo.editAppName(event.value, selected)
-                _selectedAppByLongClick.value = null
+                appRepo.editAppName(event.value, selectedByLongClick)
+                _selectedByLongClick.value = null
             }
 
             is OnDragMove -> viewModelScope.launch {
@@ -114,6 +118,22 @@ class HomeViewModel @Inject constructor(
             is OnGridCountChange -> appRepo.updateGridCount(event.value)
 
             is OnCurrentPageChange -> _currentPage.value = event.value
+
+            is HomeScreenEvent.OnMovingSelect -> _isMovingSelect.value = true
+
+            is HomeScreenEvent.OnItemCheck -> {
+                val newAppPages = appPages.mapValues {
+                    if (it.key == event.pageIndex) {
+                        it.value.toMutableList().apply {
+                            this[event.index] = when (val app = this[event.index]) {
+                                is UserApp -> app.copy(isChecked = event.isChecked)
+                                is App.CompanyApp -> app.copy(isChecked = event.isChecked)
+                            }
+                        }
+                    } else it.value
+                }
+                _appPages.value = newAppPages
+            }
         }
     }
 

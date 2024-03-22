@@ -17,6 +17,7 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +52,7 @@ import com.example.customlauncher.core.model.showInfo
 import com.example.customlauncher.core.model.uninstall
 import com.example.customlauncher.feature.home.HomeScreenEvent
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnEditNameConfirm
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnMovingSelect
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,6 +62,9 @@ fun UserAppItem(
     isSelected: Boolean,
     gridState: ReorderableLazyGridState,
     isDragging: Boolean,
+    isUiMoving: Boolean,
+    pageIndex: Int,
+    index: Int,
     modifier: Modifier = Modifier,
     onEvent: (HomeScreenEvent) -> Unit,
 ) {
@@ -89,10 +94,19 @@ fun UserAppItem(
                 TooltipBoxUi(
                     app = app,
                     showEditNameDialog = { showEditNameDialog = true },
+                    changeToMovingUi = {
+                        onEvent(HomeScreenEvent.OnItemCheck(true, pageIndex, index))
+                        onEvent(OnMovingSelect(true))
+                    },
                     cancelSelected = { onEvent(OnUserAppLongClick(null)) },
                 )
             }) {
-            AppItemUi(app)
+            AppItemUi(
+                app = app,
+                isUiMoving = isUiMoving,
+            ) {
+                onEvent(HomeScreenEvent.OnItemCheck(it, pageIndex, index))
+            }
         }
     }
 
@@ -107,7 +121,11 @@ fun UserAppItem(
 }
 
 @Composable
-private fun AppItemUi(app: App.UserApp) {
+private fun AppItemUi(
+    app: App.UserApp,
+    isUiMoving: Boolean,
+    onItemSelect: (Boolean) -> Unit
+) {
     val imageRequest = ImageRequest.Builder(LocalContext.current)
         .data(app.icon)
         .memoryCacheKey(app.packageName)
@@ -120,8 +138,13 @@ private fun AppItemUi(app: App.UserApp) {
     ) {
         BadgedBox(
             badge = {
-                androidx.compose.animation.AnimatedVisibility(app.notificationCount != 0) {
-                    Badge(modifier = Modifier.size(20.dp)) {
+                when {
+                    isUiMoving -> Checkbox(
+                        checked = app.isChecked,
+                        onCheckedChange = { onItemSelect(it) }
+                    )
+
+                    app.notificationCount != 0 -> Badge(modifier = Modifier.size(20.dp)) {
                         Text(text = (app.notificationCount).toString())
                     }
                 }
@@ -147,6 +170,7 @@ private fun AppItemUi(app: App.UserApp) {
 private fun TooltipBoxUi(
     app: App.UserApp,
     showEditNameDialog: () -> Unit,
+    changeToMovingUi: () -> Unit,
     cancelSelected: () -> Unit
 ) {
     val context = LocalContext.current
@@ -162,6 +186,11 @@ private fun TooltipBoxUi(
         HorizontalDivider()
         TooltipMenuItem(tooltipMenu = TooltipMenu.AppInfo) {
             app.showInfo(context)
+            cancelSelected()
+        }
+        HorizontalDivider()
+        TooltipMenuItem(tooltipMenu = TooltipMenu.Move) {
+            changeToMovingUi()
             cancelSelected()
         }
         if (app.canUninstall) {

@@ -11,6 +11,7 @@ import com.example.customlauncher.core.model.App.UserApp
 sealed class App {
 
     abstract val packageName: String
+    abstract val isChecked: Boolean
 
     data class CompanyApp(
         val name: String,
@@ -19,6 +20,7 @@ sealed class App {
         val logo: String,
         val type: Long,
         val isFavorite: Boolean,
+        override val isChecked: Boolean = false,
         override val packageName: String
     ) : App()
 
@@ -28,6 +30,7 @@ sealed class App {
         val icon: Bitmap,
         val canUninstall: Boolean,
         val notificationCount: Int,
+        override val isChecked: Boolean = false,
         override val packageName: String,
     ) : App()
 }
