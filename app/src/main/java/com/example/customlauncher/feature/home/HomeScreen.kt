@@ -27,11 +27,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.animateLottieCompositionAsState
-import com.airbnb.lottie.compose.rememberLottieComposition
-import com.example.customlauncher.R
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ItemPosition
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableItem
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
@@ -43,18 +38,24 @@ import com.example.customlauncher.core.model.App.UserApp
 import com.example.customlauncher.core.ui.appitem.CompanyAppItem
 import com.example.customlauncher.core.ui.appitem.UserAppItem
 import com.example.customlauncher.core.ui.pageslider.PageSlider
-import com.example.customlauncher.feature.home.HomeScreenEvent.MoveApp
-import com.example.customlauncher.feature.home.HomeScreenEvent.SelectToShowTooltip
-import com.example.customlauncher.feature.home.HomeScreenEvent.StartDrag
-import com.example.customlauncher.feature.home.HomeScreenEvent.StopDrag
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnCurrentPageChange
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragMove
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStart
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStop
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnGridCountChange
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnInitialSetup
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
 import kotlin.math.roundToInt
 
 sealed interface HomeScreenEvent {
-    data class SelectToShowTooltip(val userApp: UserApp?) : HomeScreenEvent
-    data class EditName(val value: String) : HomeScreenEvent
-    data class MoveApp(val from: ItemPosition, val to: ItemPosition) : HomeScreenEvent
-    data object StartDrag : HomeScreenEvent
-    data class StopDrag(val from: Int, val to: Int) : HomeScreenEvent
+    data object OnInitialSetup : HomeScreenEvent
+    data class OnUserAppLongClick(val userApp: UserApp?) : HomeScreenEvent
+    data class OnEditNameConfirm(val value: String) : HomeScreenEvent
+    data class OnDragMove(val from: ItemPosition, val to: ItemPosition) : HomeScreenEvent
+    data object OnDragStart : HomeScreenEvent
+    data class OnDragStop(val from: Int, val to: Int) : HomeScreenEvent
+    data class OnGridCountChange(val value: Int) : HomeScreenEvent
+    data class OnCurrentPageChange(val value: Int) : HomeScreenEvent
 }
 
 @Composable
@@ -62,10 +63,9 @@ fun HomeScreen(
     windowSizeClass: WindowSizeClass,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(true) {
-        viewModel.setupInitialState()
+    LaunchedEffect(Unit) {
+        viewModel.onEvent(OnInitialSetup)
     }
-
 
     val columns = when (windowSizeClass.widthSizeClass) {
         WindowWidthSizeClass.Compact -> 5
@@ -73,68 +73,74 @@ fun HomeScreen(
         WindowWidthSizeClass.Expanded -> 8
         else -> throw Exception()
     }
+
     val rows = LocalConfiguration.current.run {
         screenHeightDp / (screenWidthDp * 1.5 / columns).roundToInt()
     }
 
     LaunchedEffect(columns, rows) {
-        viewModel.updateGridCount(columns * rows)
+        viewModel.onEvent(OnGridCountChange(columns * rows))
     }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeScreenUi(uiState = uiState, rows = rows, columns = columns) {
-        viewModel.updateCurrentPage(it)
+    var itemHeight by remember { mutableStateOf(0.dp) }
+    val state = rememberReorderableLazyGridState(
+        onMove = { from, to -> viewModel.onEvent(OnDragMove(from, to)) },
+        canDragOver = { _, _ -> true },
+        onDragStart = { _, _, _ -> viewModel.onEvent(OnDragStart) },
+        onDragEnd = { from, to -> viewModel.onEvent(OnDragStop(from, to)) }
+
+    )
+
+    when (uiState) {
+        is HomeUiState.Loading -> EmCodeODay()
+        is HomeUiState.HomeData -> Scaffold(
+            containerColor = Color.Transparent,
+            modifier = Modifier.noRippleClickable { viewModel.onEvent(OnUserAppLongClick(null)) }
+        ) { paddings ->
+            PageSlider(
+                pageCount = (uiState as HomeUiState.HomeData).appPages.size,
+                modifier = Modifier.padding(paddings),
+                onHeightChange = { itemHeight = it / rows },
+                onPageChange = { viewModel.onEvent(OnCurrentPageChange(it)) }
+            ) { index ->
+                HomeDataUi(
+                    uiState = uiState as HomeUiState.HomeData,
+                    columns = columns,
+                    index = index,
+                    itemHeight = itemHeight,
+                    state = state,
+                    onEvent = viewModel::onEvent
+                )
+            }
+        }
     }
 }
 
-
 @Composable
-private fun HomeScreenUi(
-    uiState: HomeUiState,
-    rows: Int,
+private fun HomeDataUi(
+    uiState: HomeUiState.HomeData,
     columns: Int,
-    updateCurrentPage: (Int) -> Unit
+    index: Int,
+    itemHeight: Dp,
+    state: ReorderableLazyGridState,
+    onEvent: (HomeScreenEvent) -> Unit
 ) {
-    when (uiState) {
-        is HomeUiState.Loading -> Loader()
-        is HomeUiState.HomeData -> {
-            var itemHeight by remember { mutableStateOf(0.dp) }
-            val state = rememberReorderableLazyGridState(
-                onMove = { from, to -> uiState.eventSink(MoveApp(from, to)) },
-                canDragOver = { _, _ -> true },
-                onDragStart = { _, _, _ -> uiState.eventSink(StartDrag) },
-                onDragEnd = { from, to -> uiState.eventSink(StopDrag(from, to)) }
-            )
-
-            Scaffold(
-                containerColor = Color.Transparent,
-                modifier = Modifier.noRippleClickable { uiState.eventSink(SelectToShowTooltip(null)) }
-            ) { paddings ->
-                PageSlider(
-                    pageCount = uiState.appPages.size,
-                    modifier = Modifier.padding(paddings),
-                    onHeightChange = { itemHeight = it / rows },
-                    onPageChange = { updateCurrentPage(it) }
-                ) { index ->
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(columns),
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        state = state.gridState,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .reorderable(state)
-                    ) {
-                        homeScreenItems(
-                            apps = uiState.appPages[index] ?: emptyList(),
-                            selectedPackageName = uiState.selectedApp?.packageName,
-                            gridState = state,
-                            itemHeight = itemHeight,
-                            eventSink = uiState.eventSink,
-                        )
-                    }
-                }
-            }
-        }
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(columns),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        state = state.gridState,
+        modifier = Modifier
+            .fillMaxSize()
+            .reorderable(state)
+    ) {
+        homeScreenItems(
+            apps = uiState.appPages[index] ?: emptyList(),
+            selectedPackageName = uiState.selectedApp?.packageName,
+            gridState = state,
+            itemHeight = itemHeight,
+            onEvent = { onEvent(it) }
+        )
     }
 }
 
@@ -143,7 +149,7 @@ private fun LazyGridScope.homeScreenItems(
     selectedPackageName: String?,
     gridState: ReorderableLazyGridState,
     itemHeight: Dp,
-    eventSink: (HomeScreenEvent) -> Unit,
+    onEvent: (HomeScreenEvent) -> Unit,
 ) {
     items(apps, { it.packageName }) { app ->
         ReorderableItem(
@@ -156,8 +162,8 @@ private fun LazyGridScope.homeScreenItems(
                     isSelected = selectedPackageName == app.packageName,
                     gridState = gridState,
                     isDragging = isDragging,
-                    eventSink = eventSink,
-                    modifier = Modifier.height(itemHeight)
+                    modifier = Modifier.height(itemHeight),
+                    onEvent = onEvent
                 )
 
                 is App.CompanyApp -> CompanyAppItem(
@@ -171,12 +177,8 @@ private fun LazyGridScope.homeScreenItems(
 }
 
 @Composable
-fun Loader() {
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
-    val progress by animateLottieCompositionAsState(composition)
-    LottieAnimation(
-        composition = composition,
-        progress = { progress },
-        modifier = Modifier.fillMaxSize()
-    )
+fun EmCodeODay() {
+    Box(modifier = Modifier.fillMaxSize(), Alignment.Center) {
+        LinearProgressIndicator()
+    }
 }

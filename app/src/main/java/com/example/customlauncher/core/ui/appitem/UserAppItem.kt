@@ -50,6 +50,8 @@ import com.example.customlauncher.core.model.launch
 import com.example.customlauncher.core.model.showInfo
 import com.example.customlauncher.core.model.uninstall
 import com.example.customlauncher.feature.home.HomeScreenEvent
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnEditNameConfirm
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +61,7 @@ fun UserAppItem(
     gridState: ReorderableLazyGridState,
     isDragging: Boolean,
     modifier: Modifier = Modifier,
-    eventSink: (HomeScreenEvent) -> Unit
+    onEvent: (HomeScreenEvent) -> Unit,
 ) {
     val tooltipState = rememberTooltipState()
     var showEditNameDialog by remember { mutableStateOf(false) }
@@ -67,7 +69,7 @@ fun UserAppItem(
 
     LaunchedEffect(isSelected, isDragging) {
         if (isDragging) {
-            eventSink(HomeScreenEvent.SelectToShowTooltip(null))
+            onEvent(OnUserAppLongClick(null))
         }
         if (isSelected) tooltipState.show() else tooltipState.dismiss()
     }
@@ -75,7 +77,7 @@ fun UserAppItem(
     Box(
         modifier = modifier.detectPressOrDragAndReorder(
             state = gridState,
-            onLongClick = { eventSink(HomeScreenEvent.SelectToShowTooltip(app)) },
+            onLongClick = { onEvent(OnUserAppLongClick(app)) },
             onClick = { app.launch(context) }
         )
     ) {
@@ -87,7 +89,7 @@ fun UserAppItem(
                 TooltipBoxUi(
                     app = app,
                     showEditNameDialog = { showEditNameDialog = true },
-                    cancelSelected = { eventSink(HomeScreenEvent.SelectToShowTooltip(null)) },
+                    cancelSelected = { onEvent(OnUserAppLongClick(null)) },
                 )
             }) {
             AppItemUi(app)
@@ -99,7 +101,7 @@ fun UserAppItem(
             currentName = app.name,
             dismiss = { showEditNameDialog = false }
         ) { newName ->
-            eventSink(HomeScreenEvent.EditName(newName))
+            onEvent(OnEditNameConfirm(newName))
         }
     }
 }
