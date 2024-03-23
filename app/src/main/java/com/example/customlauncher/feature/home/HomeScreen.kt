@@ -59,22 +59,25 @@ import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStart
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStop
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnGridCountChange
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnInitialSetup
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnMovingSelect
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnMoveConfirm
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnMoveSelect
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
 import kotlin.math.roundToInt
 
 sealed interface HomeScreenEvent {
     data object OnInitialSetup : HomeScreenEvent
     data class OnUserAppLongClick(val userApp: UserApp?) : HomeScreenEvent
-    data class OnEditNameConfirm(val value: String) : HomeScreenEvent
+    data class OnNameEditConfirm(val value: String) : HomeScreenEvent
     data class OnDragMove(val from: ItemPosition, val to: ItemPosition) : HomeScreenEvent
     data object OnDragStart : HomeScreenEvent
     data class OnDragStop(val from: Int, val to: Int) : HomeScreenEvent
     data class OnGridCountChange(val value: Int) : HomeScreenEvent
     data class OnCurrentPageChange(val value: Int) : HomeScreenEvent
-    data class OnMovingSelect(val value: Boolean) : HomeScreenEvent
+    data class OnMoveSelect(val value: Boolean) : HomeScreenEvent
     data class OnItemCheck(val isChecked: Boolean, val pageIndex: Int, val index: Int) :
         HomeScreenEvent
+
+    data object OnMoveConfirm : HomeScreenEvent
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -127,11 +130,11 @@ fun HomeScreen(
             Column(Modifier.padding(paddings)) {
                 AnimatedVisibility(visible = uiDataState.isMoving) {
                     Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        Button(onClick = { viewModel.onEvent(OnMovingSelect(false)) }) {
+                        Button(onClick = { viewModel.onEvent(OnMoveSelect(false)) }) {
                             Text("Cancel")
                         }
                         Spacer(modifier = Modifier.weight(1f))
-                        Button(onClick = { /*TODO*/ }) {
+                        Button(onClick = { viewModel.onEvent(OnMoveConfirm) }) {
                             Text("Move Here")
                         }
                     }

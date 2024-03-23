@@ -12,6 +12,8 @@ import com.example.customlauncher.core.data.util.asEntity
 import com.example.customlauncher.core.data.util.packageName
 import com.example.customlauncher.core.database.CompanyAppDao
 import com.example.customlauncher.core.database.UserAppDao
+import com.example.customlauncher.core.database.model.CompanyAppEntity
+import com.example.customlauncher.core.database.model.UserAppEntity
 import com.example.customlauncher.core.database.model.asExternalModel
 import com.example.customlauncher.core.database.model.canUninstall
 import com.example.customlauncher.core.database.model.isInstalledAndUpToDate
@@ -88,21 +90,11 @@ class OfflineFirstAppRepository @Inject constructor(
         val userDbApps = userAppDao.getAll()
         val companyDbApps = companyAppDao.getAll()
 
-        val userAppPageMap = userDbApps.groupBy { app -> app.page }
-            .mapValues {
-                it.value.sortedBy { app -> app.index }
-                    .map { app -> app.packageName }
-            }
+        val pageMap = getPackageNameMapByPage(userDbApps, companyDbApps)
+            .toSortedMap()
+            .toMutableMap()
 
-        val companyAppPageMap = companyDbApps.groupBy { it.page }
-            .mapValues {
-                it.value.sortedBy { app -> app.index }
-                    .map { app -> app.packageName }
-            }
-
-        val pageMap = userAppPageMap.mergeWith(companyAppPageMap).toSortedMap().toMutableMap()
         val userDbAppMap = userDbApps.associateBy { it.packageName }
-
         val gridCount = _gridCount.first { it != 0 }
 
         val currentUserApps = resolveInfo.values.map { info ->
@@ -143,26 +135,16 @@ class OfflineFirstAppRepository @Inject constructor(
     // TODO: Need to check version to upgrade existing apps
     override suspend fun refreshCompanyApps() {
         val networkCompanyApps = network.getCompanyApps().apps
-        userAppDao.deleteUninstalled(networkCompanyApps.map { it.packageName })
+        companyAppDao.deleteUninstalled(networkCompanyApps.map { it.packageName })
 
         val userDbApps = userAppDao.getAll()
         val companyDbApps = companyAppDao.getAll()
 
-        val userAppPageMap = userDbApps.groupBy { app -> app.page }
-            .mapValues {
-                it.value.sortedBy { app -> app.index }
-                    .map { app -> app.packageName }
-            }
+        val pageMap = getPackageNameMapByPage(userDbApps, companyDbApps)
+            .toSortedMap()
+            .toMutableMap()
 
-        val companyAppPageMap = companyDbApps.groupBy { it.page }
-            .mapValues {
-                it.value.sortedBy { app -> app.index }
-                    .map { app -> app.packageName }
-            }
-
-        val pageMap = userAppPageMap.mergeWith(companyAppPageMap).toSortedMap().toMutableMap()
         val companyDbAppMap = companyDbApps.associateBy { it.packageName }
-
         val gridCount = _gridCount.first { it != 0 }
 
         val currentCompanyApps = networkCompanyApps.map { app ->
@@ -206,43 +188,84 @@ class OfflineFirstAppRepository @Inject constructor(
     override suspend fun moveInPage(toIndex: Int, app: App) {
         when (app) {
             is UserApp -> userAppDao.updateIndexByPackageName(toIndex, app.packageName)
-            is CompanyApp -> companyAppDao.updateIndexById(toIndex, app.packageName)
+            is CompanyApp -> companyAppDao.updateIndexByPackageName(toIndex, app.packageName)
         }
     }
 
+    override suspend fun moveToPage(toPage: Int, apps: List<App>) {
+        val userDbApps = userAppDao.getAll()
+        val companyDbApps = companyAppDao.getAll()
+        val pageMap = getPackageNameMapByPage(userDbApps, companyDbApps)
+        val gridCount = _gridCount.first { it != 0 }
+        val remainingPageSpace = gridCount - pageMap[toPage]!!.size
+        var latestIndex = pageMap[toPage]!!.lastIndex
+        apps.take(remainingPageSpace).forEach { app ->
+            when (app) {
+                is UserApp -> userAppDao.updatePageAndIndexByPackageName(
+                    toPage, ++latestIndex,
+                    app.packageName
+                )
+
+                is CompanyApp -> companyAppDao.updatePageAndIndexByPackageName(
+                    toPage, ++latestIndex,
+                    app.packageName
+                )
+            }
+        }
+    }
+
+    private fun getPackageNameMapByPage(
+        userDbApps: List<UserAppEntity>,
+        companyDbApps: List<CompanyAppEntity>
+    ): Map<Int, List<String>> {
+        val userAppPageMap = userDbApps.groupBy { app -> app.page }
+            .mapValues {
+                it.value.sortedBy { app -> app.index }
+                    .map { app -> app.packageName }
+            }
+
+        val companyAppPageMap = companyDbApps.groupBy { it.page }
+            .mapValues {
+                it.value.sortedBy { app -> app.index }
+                    .map { app -> app.packageName }
+            }
+
+        return userAppPageMap.mergeWith(companyAppPageMap)
+    }
+
     private fun calculatePage(
-        map: MutableMap<Int, List<String>>,
+        packageNameMap: MutableMap<Int, List<String>>,
         gridCount: Int,
     ): Int {
-        if (map.isEmpty()) {
+        if (packageNameMap.isEmpty()) {
             return 0
         }
 
-        map.forEach {
+        packageNameMap.forEach {
             val count = it.value.size
             if (gridCount > count) {
                 return it.key
             }
         }
 
-        return map.keys.max() + 1
+        return packageNameMap.keys.max() + 1
     }
 
     private fun calculateIndexAndUpdateTempMap(
-        map: MutableMap<Int, List<String>>,
+        packageNameMap: MutableMap<Int, List<String>>,
         page: Int,
         packageName: String,
     ): Int {
-        if (map[page].isNullOrEmpty()) {
-            map[page] = listOf(packageName)
+        if (packageNameMap[page].isNullOrEmpty()) {
+            packageNameMap[page] = listOf(packageName)
             return 0
         }
 
-        map.compute(page) { _, value ->
+        packageNameMap.compute(page) { _, value ->
             value!!.toMutableList().apply { add(packageName) }
         }
 
-        return map[page]!!.lastIndex
+        return packageNameMap[page]!!.lastIndex
     }
 }
 

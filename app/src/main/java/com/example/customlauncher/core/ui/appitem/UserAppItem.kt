@@ -53,9 +53,9 @@ import com.example.customlauncher.core.model.launch
 import com.example.customlauncher.core.model.showInfo
 import com.example.customlauncher.core.model.uninstall
 import com.example.customlauncher.feature.home.HomeScreenEvent
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnEditNameConfirm
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnItemCheck
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnMovingSelect
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnMoveSelect
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnNameEditConfirm
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,7 +107,7 @@ fun UserAppItem(
                     showEditNameDialog = { showEditNameDialog = true },
                     changeToMovingUi = {
                         onEvent(OnItemCheck(true, pageIndex, index))
-                        onEvent(OnMovingSelect(true))
+                        onEvent(OnMoveSelect(true))
                     },
                     cancelSelected = { onEvent(OnUserAppLongClick(null)) },
                 )
@@ -126,7 +126,7 @@ fun UserAppItem(
             currentName = app.name,
             dismiss = { showEditNameDialog = false }
         ) { newName ->
-            onEvent(OnEditNameConfirm(newName))
+            onEvent(OnNameEditConfirm(newName))
         }
     }
 }

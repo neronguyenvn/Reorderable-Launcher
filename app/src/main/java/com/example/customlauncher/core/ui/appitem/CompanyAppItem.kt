@@ -41,7 +41,7 @@ import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.model.TooltipMenu
 import com.example.customlauncher.feature.home.HomeScreenEvent
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnItemCheck
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnMovingSelect
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnMoveSelect
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
 import kotlinx.coroutines.launch
 
@@ -80,7 +80,7 @@ fun CompanyAppItem(
             TooltipBoxUi(
                 changeToMovingUi = {
                     onEvent(OnItemCheck(true, pageIndex, index))
-                    onEvent(OnMovingSelect(true))
+                    onEvent(OnMoveSelect(true))
                 },
             ) { onEvent(OnUserAppLongClick(null)) }
         }) {

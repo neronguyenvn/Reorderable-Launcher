@@ -20,4 +20,6 @@ interface AppRepository {
     suspend fun handleNotis(notifications: List<StatusBarNotification>)
 
     suspend fun moveInPage(toIndex: Int, app: App)
+
+    suspend fun moveToPage(toPage: Int, apps: List<App>)
 }

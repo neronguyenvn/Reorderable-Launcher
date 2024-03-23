@@ -19,7 +19,10 @@ interface CompanyAppDao {
     suspend fun upsert(companyAppEntity: CompanyAppEntity)
 
     @Query("UPDATE CompanyApp SET `index` = :toIndex WHERE packageName = :packageName")
-    suspend fun updateIndexById(toIndex: Int, packageName: String)
+    suspend fun updateIndexByPackageName(toIndex: Int, packageName: String)
+
+    @Query("UPDATE CompanyApp SET page = :toPage, `index` = :toIndex WHERE packageName = :packageName")
+    suspend fun updatePageAndIndexByPackageName(toPage: Int, toIndex: Int, packageName: String)
 
     @Query("DELETE FROM UserApp WHERE packageName NOT IN (:packages)")
     suspend fun deleteUninstalled(packages: List<String>)

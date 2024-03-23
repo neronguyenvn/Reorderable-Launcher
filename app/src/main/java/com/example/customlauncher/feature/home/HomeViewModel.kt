@@ -9,9 +9,9 @@ import com.example.customlauncher.feature.home.HomeScreenEvent.OnCurrentPageChan
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragMove
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStart
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStop
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnEditNameConfirm
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnGridCountChange
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnInitialSetup
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnNameEditConfirm
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
 import com.example.customlauncher.feature.home.HomeUiState.HomeData
 import com.example.customlauncher.feature.home.HomeUiState.Loading
@@ -84,7 +84,7 @@ class HomeViewModel @Inject constructor(
 
             is OnUserAppLongClick -> _selectedByLongClick.value = event.userApp
 
-            is OnEditNameConfirm -> viewModelScope.launch {
+            is OnNameEditConfirm -> viewModelScope.launch {
                 appRepo.editAppName(event.value, selectedByLongClick)
                 _selectedByLongClick.value = null
             }
@@ -117,7 +117,7 @@ class HomeViewModel @Inject constructor(
 
             is OnCurrentPageChange -> _currentPage.value = event.value
 
-            is HomeScreenEvent.OnMovingSelect -> {
+            is HomeScreenEvent.OnMoveSelect -> {
                 _isMovingSelect.value = event.value
                 if (!event.value) {
                     val newAppPages = appPages.mapValues {
@@ -136,6 +136,14 @@ class HomeViewModel @Inject constructor(
                     } else it.value
                 }
                 _appPages.value = newAppPages
+            }
+
+            is HomeScreenEvent.OnMoveConfirm -> viewModelScope.launch {
+                val moveApps = _appPages.value.values.flatMap { list ->
+                    list.filter { it.isChecked }
+                }
+                appRepo.moveToPage(_currentPage.value, moveApps)
+                _isMovingSelect.value = false
             }
         }
     }

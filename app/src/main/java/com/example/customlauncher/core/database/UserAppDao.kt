@@ -21,9 +21,6 @@ interface UserAppDao {
     @Query("SELECT * FROM UserApp WHERE packageName = :packageName")
     suspend fun getByPackageName(packageName: String): UserAppEntity?
 
-    @Query("DELETE FROM UserApp WHERE packageName NOT IN (:packages)")
-    suspend fun deleteUninstalled(packages: List<String>)
-
     @Query("UPDATE UserApp SET name = :newName WHERE packageName = :packageName")
     suspend fun updateName(newName: String, packageName: String)
 
@@ -38,4 +35,10 @@ interface UserAppDao {
 
     @Query("Update UserApp SET `index` = :toIndex WHERE packageName = :packageName")
     suspend fun updateIndexByPackageName(toIndex: Int, packageName: String)
+
+    @Query("UPDATE UserApp SET page = :toPage, `index` = :toIndex WHERE packageName = :packageName")
+    suspend fun updatePageAndIndexByPackageName(toPage: Int, toIndex: Int, packageName: String)
+
+    @Query("DELETE FROM UserApp WHERE packageName NOT IN (:packages)")
+    suspend fun deleteUninstalled(packages: List<String>)
 }
