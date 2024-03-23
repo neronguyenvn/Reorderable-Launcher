@@ -2,7 +2,6 @@ package com.example.customlauncher.core.data
 
 import android.service.notification.StatusBarNotification
 import com.example.customlauncher.core.model.App
-import com.example.customlauncher.core.model.App.CompanyApp
 import com.example.customlauncher.core.model.App.UserApp
 import kotlinx.coroutines.flow.Flow
 
@@ -20,7 +19,5 @@ interface AppRepository {
 
     suspend fun handleNotis(notifications: List<StatusBarNotification>)
 
-    suspend fun moveUserApp(toIndex: Int, app: UserApp)
-
-    suspend fun moveCompanyApp(toIndex: Int, app: CompanyApp)
+    suspend fun moveInPage(toIndex: Int, app: App)
 }

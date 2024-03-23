@@ -203,12 +203,11 @@ class OfflineFirstAppRepository @Inject constructor(
         handleNotificationsMutex.unlock()
     }
 
-    override suspend fun moveUserApp(toIndex: Int, app: UserApp) {
-        userAppDao.updateIndexByPackageName(toIndex, app.packageName)
-    }
-
-    override suspend fun moveCompanyApp(toIndex: Int, app: CompanyApp) {
-        companyAppDao.updateIndexById(toIndex, app.packageName)
+    override suspend fun moveInPage(toIndex: Int, app: App) {
+        when (app) {
+            is UserApp -> userAppDao.updateIndexByPackageName(toIndex, app.packageName)
+            is CompanyApp -> companyAppDao.updateIndexById(toIndex, app.packageName)
+        }
     }
 
     private fun calculatePage(

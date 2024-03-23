@@ -106,11 +106,8 @@ class HomeViewModel @Inject constructor(
             is OnDragStop -> updateAppPositionJob = viewModelScope.launch {
                 delay(ITEM_POSITION_SET_DELAY)
                 appPages[_currentPage.first()]?.let { list ->
-                    for (i in minOf(event.from, event.to)..list.lastIndex) {
-                        when (val app = list[i]) {
-                            is UserApp -> appRepo.moveUserApp(i, app)
-                            is App.CompanyApp -> appRepo.moveCompanyApp(i, app)
-                        }
+                    for (i in minOf(event.from, event.to)..maxOf(event.from, event.to)) {
+                        appRepo.moveInPage(i, list[i])
                     }
                     startCollect()
                 }
