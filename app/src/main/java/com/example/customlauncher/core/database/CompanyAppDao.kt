@@ -12,12 +12,15 @@ interface CompanyAppDao {
     @Query("SELECT * FROM CompanyApp")
     fun observeAll(): Flow<List<CompanyAppEntity>>
 
+    @Query("SELECT * FROM CompanyApp")
+    suspend fun getAll(): List<CompanyAppEntity>
+
     @Upsert
     suspend fun upsert(companyAppEntity: CompanyAppEntity)
 
-    @Query("SELECT MAX(`index`) FROM UserApp")
-    suspend fun getLatestIndex(): Int
-
     @Query("UPDATE CompanyApp SET `index` = :toIndex WHERE packageName = :packageName")
     suspend fun updateIndexById(toIndex: Int, packageName: String)
+
+    @Query("DELETE FROM UserApp WHERE packageName NOT IN (:packages)")
+    suspend fun deleteUninstalled(packages: List<String>)
 }

@@ -3,7 +3,6 @@ package com.example.customlauncher.core.database
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
-import com.example.customlauncher.core.database.model.PageCount
 import com.example.customlauncher.core.database.model.UserAppEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -13,6 +12,9 @@ interface UserAppDao {
     @Query("SELECT * FROM UserApp")
     fun observeAll(): Flow<List<UserAppEntity>>
 
+    @Query("SELECT * FROM UserApp")
+    suspend fun getAll(): List<UserAppEntity>
+
     @Upsert
     suspend fun upsert(applicationEntity: UserAppEntity)
 
@@ -20,7 +22,7 @@ interface UserAppDao {
     suspend fun getByPackageName(packageName: String): UserAppEntity?
 
     @Query("DELETE FROM UserApp WHERE packageName NOT IN (:packages)")
-    suspend fun deleteUninstalledUserApp(packages: List<String>)
+    suspend fun deleteUninstalled(packages: List<String>)
 
     @Query("UPDATE UserApp SET name = :newName WHERE packageName = :packageName")
     suspend fun updateName(newName: String, packageName: String)
@@ -36,10 +38,4 @@ interface UserAppDao {
 
     @Query("Update UserApp SET `index` = :toIndex WHERE packageName = :packageName")
     suspend fun updateIndexByPackageName(toIndex: Int, packageName: String)
-
-    @Query("SELECT MAX(`index`) FROM UserApp")
-    suspend fun getLatestIndex(): Int
-
-    @Query("SELECT page as pageIndex, COUNT(*) as count FROM UserApp GROUP BY page")
-    suspend fun getPageCounts(): List<PageCount>
 }

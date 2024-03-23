@@ -6,7 +6,7 @@ import com.example.customlauncher.core.database.model.UserAppEntity
 
 val ResolveInfo.packageName: String get() = activityInfo.packageName
 
-fun ResolveInfo.asApplicationEntity(
+fun ResolveInfo.asEntity(
     packageManager: PackageManager,
     index: Int,
     page: Int

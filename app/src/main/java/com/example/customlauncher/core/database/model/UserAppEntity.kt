@@ -7,12 +7,9 @@ import android.content.pm.PackageManager.NameNotFoundException
 import android.graphics.Bitmap
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.example.customlauncher.core.database.UserAppDao
 import com.example.customlauncher.core.model.App.UserApp
 
-@Entity(
-    tableName = "UserApp",
-)
+@Entity(tableName = "UserApp")
 data class UserAppEntity(
     val name: String,
     val version: String,
@@ -35,12 +32,13 @@ fun UserAppEntity.asExternalModel(
         packageName = packageName,
         version = version,
         canUninstall = canUninstall,
-        notificationCount = notificationCount
+        notificationCount = notificationCount,
+        index = index
     )
 }
 
-suspend fun UserAppEntity.isInstalledAndUpToDate(dao: UserAppDao): Boolean {
-    val installed = dao.getByPackageName(packageName) ?: return false
+fun UserAppEntity.isInstalledAndUpToDate(map: Map<String, UserAppEntity>): Boolean {
+    val installed = map[packageName] ?: return false
     return installed.version == version
 }
 

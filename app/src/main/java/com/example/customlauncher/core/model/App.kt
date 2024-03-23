@@ -12,6 +12,7 @@ sealed class App {
 
     abstract val packageName: String
     abstract val isChecked: Boolean
+    abstract val index: Int
 
     data class CompanyApp(
         val name: String,
@@ -19,9 +20,9 @@ sealed class App {
         val urlWeb: String,
         val logo: String,
         val type: Long,
-        val isFavorite: Boolean,
+        override val packageName: String,
+        override val index: Int,
         override val isChecked: Boolean = false,
-        override val packageName: String
     ) : App()
 
     data class UserApp(
@@ -30,8 +31,9 @@ sealed class App {
         val icon: Bitmap,
         val canUninstall: Boolean,
         val notificationCount: Int,
-        override val isChecked: Boolean = false,
         override val packageName: String,
+        override val index: Int,
+        override val isChecked: Boolean = false,
     ) : App()
 
     fun editChecked(value: Boolean): App {

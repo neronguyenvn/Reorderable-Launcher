@@ -17,12 +17,13 @@ data class NetworkCompanyApp(
     val version: String,
     val urlWeb: String? = null,
     val logo: String,
-    val id: String,
+
+    @SerialName("id")
+    val packageName: String,
     val isLocal: Boolean? = null,
 
     @SerialName("full_screen")
     val fullScreen: Boolean? = null,
-
     val type: Long,
     val urlScript: String? = null,
     val page: Long,
@@ -34,7 +35,7 @@ data class NetworkCompanyApp(
     val urlLoadingScreen: String? = null
 )
 
-fun NetworkCompanyApp.asEntity(index: Int, page: Int, isFavorite: Boolean) = CompanyAppEntity(
+fun NetworkCompanyApp.asEntity(index: Int, page: Int) = CompanyAppEntity(
     name = name,
     version = version,
     urlWeb = urlWeb ?: "",
@@ -42,6 +43,5 @@ fun NetworkCompanyApp.asEntity(index: Int, page: Int, isFavorite: Boolean) = Com
     type = type,
     index = index,
     page = page,
-    isFavorite = isFavorite,
-    packageName = id,
+    packageName = packageName,
 )

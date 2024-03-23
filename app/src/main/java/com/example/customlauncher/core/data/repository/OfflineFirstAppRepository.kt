@@ -6,31 +6,27 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import com.example.customlauncher.core.common.coroutine.ClDispatcher.IO
-import com.example.customlauncher.core.common.coroutine.Dispatcher
+import com.example.customlauncher.core.common.util.mergeWith
 import com.example.customlauncher.core.data.AppRepository
-import com.example.customlauncher.core.data.util.asApplicationEntity
+import com.example.customlauncher.core.data.util.asEntity
 import com.example.customlauncher.core.data.util.packageName
 import com.example.customlauncher.core.database.CompanyAppDao
 import com.example.customlauncher.core.database.UserAppDao
-import com.example.customlauncher.core.database.model.PageCount
 import com.example.customlauncher.core.database.model.asExternalModel
 import com.example.customlauncher.core.database.model.canUninstall
 import com.example.customlauncher.core.database.model.isInstalledAndUpToDate
 import com.example.customlauncher.core.designsystem.util.asBitmap
+import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.model.App.CompanyApp
 import com.example.customlauncher.core.model.App.UserApp
 import com.example.customlauncher.core.network.ClNetworkDataSource
 import com.example.customlauncher.core.network.model.asEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class OfflineFirstAppRepository @Inject constructor(
@@ -40,9 +36,6 @@ class OfflineFirstAppRepository @Inject constructor(
 
     @ApplicationContext
     private val context: Context,
-
-    @Dispatcher(IO)
-    private val ioDispatcher: CoroutineDispatcher
 ) : AppRepository {
 
     private val pm = context.packageManager
@@ -58,24 +51,26 @@ class OfflineFirstAppRepository @Inject constructor(
 
     private val _gridCount = MutableStateFlow(0)
 
-    override fun getUserAppsStream(): Flow<Map<Int, List<UserApp>>> {
-        return userAppDao.observeAll().map { list ->
-            list.groupBy { app -> app.page }.mapValues { entityList ->
-                entityList.value.sortedBy { it.index }.mapNotNull { entity ->
+    override fun getAppsStream(): Flow<Map<Int, List<App>>> {
+        return userAppDao.observeAll().combine(companyAppDao.observeAll()) { users, companies ->
+
+            val pagedUsers = users.groupBy { app -> app.page }.mapValues { entityList ->
+                entityList.value.mapNotNull { entity ->
                     entity.asExternalModel(
                         icon = resolveInfo[entity.packageName]?.loadIcon(pm)?.asBitmap(),
                         canUninstall = entity.canUninstall(pm)
                     )
                 }
             }
-        }
-    }
 
-    override fun getCompanyAppsStream(): Flow<List<CompanyApp>> {
-        return companyAppDao.observeAll().map { list ->
-            list.sortedBy { it.index }.map { entity ->
-                entity.asExternalModel()
+            val pagedCompanies = companies.groupBy { app -> app.page }.mapValues { entityList ->
+                entityList.value.map { entity ->
+                    entity.asExternalModel()
+                }
             }
+
+            return@combine pagedUsers.mergeWith(pagedCompanies)
+                .mapValues { it.value.sortedBy { app -> app.index } }
         }
     }
 
@@ -87,35 +82,56 @@ class OfflineFirstAppRepository @Inject constructor(
     override suspend fun refreshUserApps() {
         refreshApplicationMutex.lock()
 
-        val dbApps = userAppDao.observeAll().first().associateBy { it.packageName }
-        var latestIndex = userAppDao.getLatestIndex()
+        val resolveInfo = resolveInfo
+        userAppDao.deleteUninstalled(resolveInfo.keys.toList())
+
+        val userDbApps = userAppDao.getAll()
+        val companyDbApps = companyAppDao.getAll()
+
+        val userAppPageMap = userDbApps.groupBy { app -> app.page }
+            .mapValues {
+                it.value.sortedBy { app -> app.index }
+                    .map { app -> app.packageName }
+            }
+
+        val companyAppPageMap = companyDbApps.groupBy { it.page }
+            .mapValues {
+                it.value.sortedBy { app -> app.index }
+                    .map { app -> app.packageName }
+            }
+
+        val pageMap = userAppPageMap.mergeWith(companyAppPageMap).toSortedMap().toMutableMap()
+        val userDbAppMap = userDbApps.associateBy { it.packageName }
 
         val gridCount = _gridCount.first { it != 0 }
-        val pageCounts = userAppDao.getPageCounts().toMutableList()
 
-        val currentApps = resolveInfo.values.mapIndexed { index, info ->
-            info.asApplicationEntity(
+        val currentUserApps = resolveInfo.values.map { info ->
+            userDbAppMap[info.packageName]?.let {
+                return@map info.asEntity(
+                    packageManager = pm,
+                    index = it.index,
+                    page = it.page
+                )
+            }
+
+            val page = calculatePage(pageMap, gridCount)
+            info.asEntity(
                 packageManager = pm,
-                index = dbApps[info.packageName]?.index ?: ++latestIndex,
-                page = dbApps[info.packageName]?.page ?: if (pageCounts.isEmpty()) {
-                    index / gridCount + 1
-                } else calculatePage(gridCount, pageCounts)
+                index = calculateIndexAndUpdateTempMap(pageMap, page, info.packageName),
+                page = page
             )
         }
 
-        for (app in currentApps) {
-            if (!app.isInstalledAndUpToDate(userAppDao)) {
+        for (app in currentUserApps) {
+            if (!app.isInstalledAndUpToDate(userDbAppMap)) {
                 userAppDao.upsert(app)
             } else {
-                Log.d("neronguyenvn", "UserApp ${app.packageName} is up to date")
+                Log.d("DB Client", "UserApp ${app.packageName} is up to date")
             }
         }
-        userAppDao.deleteUninstalledUserApp(currentApps.map { it.packageName })
 
         usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_WEEKLY,
-            0,
-            System.currentTimeMillis()
+            UsageStatsManager.INTERVAL_DAILY, 0, System.currentTimeMillis()
         ).forEach {
             userAppDao.updateUsageTime(it.totalTimeInForeground, it.packageName)
         }
@@ -126,30 +142,49 @@ class OfflineFirstAppRepository @Inject constructor(
 
     // TODO: Need to check version to upgrade existing apps
     override suspend fun refreshCompanyApps() {
-        withContext(ioDispatcher) {
-            val companyApps = async { network.getCompanyApps() }
+        val networkCompanyApps = network.getCompanyApps().apps
+        userAppDao.deleteUninstalled(networkCompanyApps.map { it.packageName })
 
-            val dbApps = companyAppDao.observeAll().first().associateBy { it.packageName }
-            var latestIndex = companyAppDao.getLatestIndex()
+        val userDbApps = userAppDao.getAll()
+        val companyDbApps = companyAppDao.getAll()
 
-            companyApps.await().apps.forEach {
-                companyAppDao.upsert(
-                    it.asEntity(
-                        index = dbApps[it.id]?.index ?: ++latestIndex,
-                        page = 0,
-                        isFavorite = false
-                    )
+        val userAppPageMap = userDbApps.groupBy { app -> app.page }
+            .mapValues {
+                it.value.sortedBy { app -> app.index }
+                    .map { app -> app.packageName }
+            }
+
+        val companyAppPageMap = companyDbApps.groupBy { it.page }
+            .mapValues {
+                it.value.sortedBy { app -> app.index }
+                    .map { app -> app.packageName }
+            }
+
+        val pageMap = userAppPageMap.mergeWith(companyAppPageMap).toSortedMap().toMutableMap()
+        val companyDbAppMap = companyDbApps.associateBy { it.packageName }
+
+        val gridCount = _gridCount.first { it != 0 }
+
+        val currentCompanyApps = networkCompanyApps.map { app ->
+            companyDbAppMap[app.packageName]?.let { entity ->
+                return@map app.asEntity(
+                    index = entity.index,
+                    page = entity.page,
                 )
             }
 
-            companyApps.await().favorites.forEach {
-                companyAppDao.upsert(
-                    it.asEntity(
-                        index = dbApps[it.id]?.index ?: ++latestIndex,
-                        page = 0,
-                        isFavorite = false
-                    )
-                )
+            val page = calculatePage(pageMap, gridCount)
+            app.asEntity(
+                index = calculateIndexAndUpdateTempMap(pageMap, page, app.packageName),
+                page = page
+            )
+        }
+
+        for (app in currentCompanyApps) {
+            if (!app.isInstalledAndUpToDate(companyDbAppMap)) {
+                companyAppDao.upsert(app)
+            } else {
+                Log.d("DB Client", "Company ${app.packageName} is up to date")
             }
         }
     }
@@ -176,14 +211,39 @@ class OfflineFirstAppRepository @Inject constructor(
         companyAppDao.updateIndexById(toIndex, app.packageName)
     }
 
-    private fun calculatePage(gridCount: Int, pageCounts: MutableList<PageCount>): Int {
-        pageCounts.forEachIndexed { index, page ->
-            if (gridCount > page.count) {
-                pageCounts[index] = page.copy(count = page.count + 1)
-                return page.pageIndex
+    private fun calculatePage(
+        map: MutableMap<Int, List<String>>,
+        gridCount: Int,
+    ): Int {
+        if (map.isEmpty()) {
+            return 0
+        }
+
+        map.forEach {
+            val count = it.value.size
+            if (gridCount > count) {
+                return it.key
             }
         }
-        return pageCounts.last().pageIndex + 1
+
+        return map.keys.max() + 1
+    }
+
+    private fun calculateIndexAndUpdateTempMap(
+        map: MutableMap<Int, List<String>>,
+        page: Int,
+        packageName: String,
+    ): Int {
+        if (map[page].isNullOrEmpty()) {
+            map[page] = listOf(packageName)
+            return 0
+        }
+
+        map.compute(page) { _, value ->
+            value!!.toMutableList().apply { add(packageName) }
+        }
+
+        return map[page]!!.lastIndex
     }
 }
 

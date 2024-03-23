@@ -13,7 +13,6 @@ data class CompanyAppEntity(
     val type: Long,
     val index: Int,
     val page: Int,
-    val isFavorite: Boolean,
 
     @PrimaryKey
     val packageName: String
@@ -25,6 +24,11 @@ fun CompanyAppEntity.asExternalModel() = CompanyApp(
     urlWeb = urlWeb,
     logo = logo,
     type = type,
-    isFavorite = isFavorite,
-    packageName = packageName
+    packageName = packageName,
+    index = index
 )
+
+fun CompanyAppEntity.isInstalledAndUpToDate(map: Map<String, CompanyAppEntity>): Boolean {
+    val installed = map[packageName] ?: return false
+    return installed.version == version
+}

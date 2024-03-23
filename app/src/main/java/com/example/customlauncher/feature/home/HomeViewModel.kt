@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -143,23 +144,19 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun setupInitialState() = viewModelScope.launch {
-        val refreshJob = launch {
-            launch { appRepo.refreshUserApps() }
-            launch { appRepo.refreshCompanyApps() }
-        }
-        refreshJob.join()
+        appRepo.refreshCompanyApps()
+        appRepo.refreshUserApps()
         startCollect()
-        delay(ITEM_POSITION_SET_DELAY)
         _isLoading.value = false
     }
 
     private fun startCollect() {
-        collectAppsJob = combine(
-            appRepo.getCompanyAppsStream(),
-            appRepo.getUserAppsStream()
-        ) { companies, users ->
-            _appPages.value = users + (0 to companies)
-        }.launchIn(viewModelScope)
+        collectAppsJob = appRepo.getAppsStream()
+            .onEach {
+                val appPages = it
+                _appPages.value = appPages
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun cancelAllJobs() {
