@@ -6,6 +6,7 @@ import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import coil.util.DebugLogger
+import com.example.customlauncher.BuildConfig
 import com.example.customlauncher.core.network.ClNetworkDataSource
 import com.example.customlauncher.core.network.ktor.KtorNetwork
 import dagger.Module
@@ -33,13 +34,15 @@ object NetworkModule {
     @Singleton
     fun providesHttpClient(): HttpClient {
         return HttpClient(OkHttp) {
-            install(Logging) {
-                logger = object : Logger {
-                    override fun log(message: String) {
-                        Log.d("HTTP Client", message)
+            if (BuildConfig.DEBUG) {
+                install(Logging) {
+                    logger = object : Logger {
+                        override fun log(message: String) {
+                            Log.d("HTTP Client", message)
+                        }
                     }
+                    level = LogLevel.BODY
                 }
-                level = LogLevel.BODY
             }
         }
     }
@@ -66,6 +69,6 @@ object NetworkModule {
                 .maxSizePercent(0.02)
                 .build()
         }
-        .logger(DebugLogger())
+        .apply { if (BuildConfig.DEBUG) logger(DebugLogger()) }
         .build()
 }
