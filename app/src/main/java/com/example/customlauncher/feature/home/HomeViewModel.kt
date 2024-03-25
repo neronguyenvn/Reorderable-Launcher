@@ -143,8 +143,13 @@ class HomeViewModel @Inject constructor(
                     list.filter { it.isChecked }
                 }
                 appRepo.moveToPage(_currentPage.value, moveApps)
+                val newAppPages = appPages.mapValues {
+                    it.value.map { app -> app.editChecked(false) }
+                }
+                _appPages.value = newAppPages
                 _isMovingSelect.value = false
             }
+
         }
     }
 
