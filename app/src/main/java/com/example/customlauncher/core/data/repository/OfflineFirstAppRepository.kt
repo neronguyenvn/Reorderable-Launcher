@@ -208,8 +208,8 @@ class OfflineFirstAppRepository @Inject constructor(
         val companyDbApps = companyAppDao.getAll()
         val pageMap = getPackageNameAppTypeMapByPage(userDbApps, companyDbApps)
         val gridCount = _gridCount.first { it != 0 }
-        val remainingPageSpace = gridCount - pageMap[toPage]!!.size
-        var latestIndex = pageMap[toPage]!!.lastIndex
+        val remainingPageSpace = gridCount - (pageMap[toPage]?.size ?: 0)
+        var latestIndex = pageMap[toPage]?.lastIndex ?: 0
         apps.take(remainingPageSpace).forEach { app ->
             when (app) {
                 is UserApp -> userAppDao.updatePageAndIndexByPackageName(
@@ -254,7 +254,7 @@ class OfflineFirstAppRepository @Inject constructor(
         }
 
         for (i in packageNameMap) {
-            if (isFirstPageAllCompanyApps) continue
+            if (isFirstPageAllCompanyApps && i.key == 0) continue
             val count = i.value.size
             if (gridCount > count) {
                 return i.key
@@ -276,10 +276,10 @@ class OfflineFirstAppRepository @Inject constructor(
         }
 
         packageNameMap.compute(page) { _, value ->
-            value!!.toMutableList().apply { add(Pair(packageName, appType)) }
+            (value?.toMutableList() ?: mutableListOf()).apply { add(Pair(packageName, appType)) }
         }
 
-        return packageNameMap[page]!!.lastIndex
+        return packageNameMap[page]?.lastIndex ?: 0
     }
 }
 

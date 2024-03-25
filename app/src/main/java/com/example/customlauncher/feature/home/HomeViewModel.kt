@@ -1,5 +1,6 @@
 package com.example.customlauncher.feature.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.customlauncher.core.data.AppRepository
@@ -118,14 +119,24 @@ class HomeViewModel @Inject constructor(
             is OnCurrentPageChange -> _currentPage.value = event.value
 
             is HomeScreenEvent.OnMoveSelect -> {
-                _isMovingSelect.value = event.value
                 if (!event.value) {
-                    val newAppPages = appPages.mapValues {
-                        it.value.map { app -> app.editChecked(false) }
+                    startCollect()
+                    clearCheckedAppsForMove()
+                } else {
+                    cancelAllJobs()
+                    val newAppPages = appPages.toMutableMap().apply {
+                        set(this.keys.max() + 1, emptyList())
+                        compute(event.pageIndex!!) { _, value ->
+                            value!!.toMutableList().apply {
+                                this[event.index!!] = this[event.index].editChecked(true)
+                            }
+                        }
                     }
                     _appPages.value = newAppPages
                 }
+                _isMovingSelect.value = event.value
             }
+
 
             is HomeScreenEvent.OnItemCheck -> {
                 val newAppPages = appPages.mapValues {
@@ -143,10 +154,8 @@ class HomeViewModel @Inject constructor(
                     list.filter { it.isChecked }
                 }
                 appRepo.moveToPage(_currentPage.value, moveApps)
-                val newAppPages = appPages.mapValues {
-                    it.value.map { app -> app.editChecked(false) }
-                }
-                _appPages.value = newAppPages
+                startCollect()
+                clearCheckedAppsForMove()
                 _isMovingSelect.value = false
             }
 
@@ -164,6 +173,7 @@ class HomeViewModel @Inject constructor(
         collectAppsJob = appRepo.getAppsStream()
             .onEach {
                 val appPages = it
+                Log.d("TABASA", appPages.toString())
                 _appPages.value = appPages
             }
             .launchIn(viewModelScope)
@@ -174,5 +184,12 @@ class HomeViewModel @Inject constructor(
         collectAppsJob = null
         updateAppPositionJob?.cancel()
         updateAppPositionJob = null
+    }
+
+    private fun clearCheckedAppsForMove() {
+        val newAppPages = appPages.mapValues {
+            it.value.map { app -> app.editChecked(false) }
+        }
+        _appPages.value = newAppPages
     }
 }

@@ -73,7 +73,12 @@ sealed interface HomeScreenEvent {
     data class OnDragStop(val from: Int, val to: Int) : HomeScreenEvent
     data class OnGridCountChange(val value: Int) : HomeScreenEvent
     data class OnCurrentPageChange(val value: Int) : HomeScreenEvent
-    data class OnMoveSelect(val value: Boolean) : HomeScreenEvent
+    data class OnMoveSelect(
+        val value: Boolean,
+        val pageIndex: Int? = null,
+        val index: Int? = null
+    ) : HomeScreenEvent
+
     data class OnItemCheck(val isChecked: Boolean, val pageIndex: Int, val index: Int) :
         HomeScreenEvent
 

@@ -105,10 +105,7 @@ fun UserAppItem(
                 TooltipBoxUi(
                     app = app,
                     showEditNameDialog = { showEditNameDialog = true },
-                    changeToMovingUi = {
-                        onEvent(OnItemCheck(true, pageIndex, index))
-                        onEvent(OnMoveSelect(true))
-                    },
+                    changeToMovingUi = { onEvent(OnMoveSelect(true, pageIndex, index)) },
                     cancelSelected = { onEvent(OnUserAppLongClick(null)) },
                 )
             }) {

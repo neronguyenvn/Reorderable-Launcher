@@ -42,7 +42,6 @@ import com.example.customlauncher.core.model.TooltipMenu
 import com.example.customlauncher.feature.home.HomeScreenEvent
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnItemCheck
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnMoveSelect
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,11 +77,9 @@ fun CompanyAppItem(
         enableUserInput = false,
         tooltip = {
             TooltipBoxUi(
-                changeToMovingUi = {
-                    onEvent(OnItemCheck(true, pageIndex, index))
-                    onEvent(OnMoveSelect(true))
-                },
-            ) { onEvent(OnUserAppLongClick(null)) }
+                changeToMovingUi = { onEvent(OnMoveSelect(true, pageIndex, index)) },
+                cancelSelected = { tooltipState.dismiss() }
+            )
         }) {
         Column(
             verticalArrangement = Arrangement.Center,
