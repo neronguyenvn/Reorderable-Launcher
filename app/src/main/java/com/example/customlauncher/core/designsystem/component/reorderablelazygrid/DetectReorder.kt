@@ -32,7 +32,7 @@ import androidx.compose.ui.layout.positionInWindow
 @Composable
 fun Modifier.detectPressOrDragAndReorder(
     state: ReorderableState<*>,
-    onLongClick: () -> Unit = {},
+    onLongClick: () -> Unit,
     onClick: () -> Unit
 ): Modifier {
     val itemPosition = remember { mutableStateOf(Offset.Zero) }

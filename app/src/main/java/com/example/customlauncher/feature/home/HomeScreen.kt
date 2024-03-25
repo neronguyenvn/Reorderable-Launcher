@@ -1,5 +1,6 @@
 package com.example.customlauncher.feature.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
@@ -135,6 +136,8 @@ fun HomeScreen(
             )
 
             is HomeUiState.HomeData -> {
+                BackHandler { Unit }
+
                 val uiDataState = uiState as HomeUiState.HomeData
                 val pagerState = rememberPagerState { uiDataState.appPages.size }
 
