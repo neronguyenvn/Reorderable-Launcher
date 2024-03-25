@@ -53,6 +53,8 @@ class OfflineFirstAppRepository @Inject constructor(
 
     private val _gridCount = MutableStateFlow(0)
 
+    private enum class AppType { User, Company }
+
     override fun getAppsStream(): Flow<Map<Int, List<App>>> {
         return userAppDao.observeAll().combine(companyAppDao.observeAll()) { users, companies ->
 
@@ -90,12 +92,13 @@ class OfflineFirstAppRepository @Inject constructor(
         val userDbApps = userAppDao.getAll()
         val companyDbApps = companyAppDao.getAll()
 
-        val pageMap = getPackageNameMapByPage(userDbApps, companyDbApps)
+        val pageMap = getPackageNameAppTypeMapByPage(userDbApps, companyDbApps)
             .toSortedMap()
             .toMutableMap()
 
         val userDbAppMap = userDbApps.associateBy { it.packageName }
         val gridCount = _gridCount.first { it != 0 }
+        val isFirstPageAllCompanyApps = pageMap[0]?.all { it.second == AppType.Company } ?: false
 
         val currentUserApps = resolveInfo.values.map { info ->
             userDbAppMap[info.packageName]?.let {
@@ -106,11 +109,16 @@ class OfflineFirstAppRepository @Inject constructor(
                 )
             }
 
-            val page = calculatePage(pageMap, gridCount)
+            val page = calculatePage(pageMap, gridCount, isFirstPageAllCompanyApps)
             info.asEntity(
                 packageManager = pm,
-                index = calculateIndexAndUpdateTempMap(pageMap, page, info.packageName),
-                page = page
+                page = page,
+                index = calculateIndexAndUpdateTempMap(
+                    pageMap,
+                    page,
+                    info.packageName,
+                    AppType.User
+                ),
             )
         }
 
@@ -131,8 +139,6 @@ class OfflineFirstAppRepository @Inject constructor(
         refreshApplicationMutex.unlock()
     }
 
-
-    // TODO: Need to check version to upgrade existing apps
     override suspend fun refreshCompanyApps() {
         val networkCompanyApps = network.getCompanyApps().apps
         companyAppDao.deleteUninstalled(networkCompanyApps.map { it.packageName })
@@ -140,7 +146,7 @@ class OfflineFirstAppRepository @Inject constructor(
         val userDbApps = userAppDao.getAll()
         val companyDbApps = companyAppDao.getAll()
 
-        val pageMap = getPackageNameMapByPage(userDbApps, companyDbApps)
+        val pageMap = getPackageNameAppTypeMapByPage(userDbApps, companyDbApps)
             .toSortedMap()
             .toMutableMap()
 
@@ -155,10 +161,15 @@ class OfflineFirstAppRepository @Inject constructor(
                 )
             }
 
-            val page = calculatePage(pageMap, gridCount)
+            val page = calculatePage(pageMap, gridCount, false)
             app.asEntity(
-                index = calculateIndexAndUpdateTempMap(pageMap, page, app.packageName),
-                page = page
+                page = page,
+                index = calculateIndexAndUpdateTempMap(
+                    pageMap,
+                    page,
+                    app.packageName,
+                    AppType.Company
+                ),
             )
         }
 
@@ -195,7 +206,7 @@ class OfflineFirstAppRepository @Inject constructor(
     override suspend fun moveToPage(toPage: Int, apps: List<App>) {
         val userDbApps = userAppDao.getAll()
         val companyDbApps = companyAppDao.getAll()
-        val pageMap = getPackageNameMapByPage(userDbApps, companyDbApps)
+        val pageMap = getPackageNameAppTypeMapByPage(userDbApps, companyDbApps)
         val gridCount = _gridCount.first { it != 0 }
         val remainingPageSpace = gridCount - pageMap[toPage]!!.size
         var latestIndex = pageMap[toPage]!!.lastIndex
@@ -214,37 +225,39 @@ class OfflineFirstAppRepository @Inject constructor(
         }
     }
 
-    private fun getPackageNameMapByPage(
+    private fun getPackageNameAppTypeMapByPage(
         userDbApps: List<UserAppEntity>,
         companyDbApps: List<CompanyAppEntity>
-    ): Map<Int, List<String>> {
+    ): Map<Int, List<Pair<String, AppType>>> {
         val userAppPageMap = userDbApps.groupBy { app -> app.page }
             .mapValues {
                 it.value.sortedBy { app -> app.index }
-                    .map { app -> app.packageName }
+                    .map { app -> Pair(app.packageName, AppType.User) }
             }
 
         val companyAppPageMap = companyDbApps.groupBy { it.page }
             .mapValues {
                 it.value.sortedBy { app -> app.index }
-                    .map { app -> app.packageName }
+                    .map { app -> Pair(app.packageName, AppType.Company) }
             }
 
         return userAppPageMap.mergeWith(companyAppPageMap)
     }
 
     private fun calculatePage(
-        packageNameMap: MutableMap<Int, List<String>>,
+        packageNameMap: MutableMap<Int, List<Pair<String, AppType>>>,
         gridCount: Int,
+        isFirstPageAllCompanyApps: Boolean
     ): Int {
         if (packageNameMap.isEmpty()) {
             return 0
         }
 
-        packageNameMap.forEach {
-            val count = it.value.size
+        for (i in packageNameMap) {
+            if (isFirstPageAllCompanyApps && i.key == 0) continue
+            val count = i.value.size
             if (gridCount > count) {
-                return it.key
+                return i.key
             }
         }
 
@@ -252,17 +265,18 @@ class OfflineFirstAppRepository @Inject constructor(
     }
 
     private fun calculateIndexAndUpdateTempMap(
-        packageNameMap: MutableMap<Int, List<String>>,
+        packageNameMap: MutableMap<Int, List<Pair<String, AppType>>>,
         page: Int,
         packageName: String,
+        appType: AppType
     ): Int {
         if (packageNameMap[page].isNullOrEmpty()) {
-            packageNameMap[page] = listOf(packageName)
+            packageNameMap[page] = listOf(Pair(packageName, appType))
             return 0
         }
 
         packageNameMap.compute(page) { _, value ->
-            value!!.toMutableList().apply { add(packageName) }
+            value!!.toMutableList().apply { add(Pair(packageName, appType)) }
         }
 
         return packageNameMap[page]!!.lastIndex
