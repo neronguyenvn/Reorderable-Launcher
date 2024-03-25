@@ -24,6 +24,6 @@ interface CompanyAppDao {
     @Query("UPDATE CompanyApp SET page = :toPage, `index` = :toIndex WHERE packageName = :packageName")
     suspend fun updatePageAndIndexByPackageName(toPage: Int, toIndex: Int, packageName: String)
 
-    @Query("DELETE FROM UserApp WHERE packageName NOT IN (:packages)")
+    @Query("DELETE FROM CompanyApp WHERE packageName NOT IN (:packages)")
     suspend fun deleteUninstalled(packages: List<String>)
 }

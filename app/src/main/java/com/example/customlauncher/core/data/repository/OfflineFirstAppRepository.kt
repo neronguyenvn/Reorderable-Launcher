@@ -254,7 +254,7 @@ class OfflineFirstAppRepository @Inject constructor(
         }
 
         for (i in packageNameMap) {
-            if (isFirstPageAllCompanyApps && i.key == 0) continue
+            if (isFirstPageAllCompanyApps) continue
             val count = i.value.size
             if (gridCount > count) {
                 return i.key
