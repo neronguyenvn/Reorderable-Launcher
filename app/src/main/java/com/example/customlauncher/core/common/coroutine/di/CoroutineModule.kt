@@ -1,6 +1,5 @@
 package com.example.customlauncher.core.common.coroutine.di
 
-import com.example.customlauncher.core.common.coroutine.ClDispatcher
 import com.example.customlauncher.core.common.coroutine.ClDispatcher.Default
 import com.example.customlauncher.core.common.coroutine.ClDispatcher.IO
 import com.example.customlauncher.core.common.coroutine.Dispatcher
@@ -39,5 +38,4 @@ object CoroutineModule {
     fun providesCoroutineScope(
         @Dispatcher(Default) dispatcher: CoroutineDispatcher,
     ): CoroutineScope = CoroutineScope(SupervisorJob() + dispatcher)
-
 }

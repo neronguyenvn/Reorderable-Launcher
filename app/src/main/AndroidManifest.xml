@@ -43,7 +43,7 @@
         </activity>
 
         <service
-            android:name=".core.data.util.NotiListener"
+            android:name=".app.service.NotiListener"
             android:exported="false"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>

@@ -2,14 +2,13 @@ package com.example.customlauncher.core.data.repository
 
 import android.app.usage.UsageStatsManager
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.example.customlauncher.core.common.util.mergeWith
 import com.example.customlauncher.core.data.AppRepository
 import com.example.customlauncher.core.data.util.asEntity
 import com.example.customlauncher.core.data.util.packageName
+import com.example.customlauncher.core.data.util.resolveInfoMap
 import com.example.customlauncher.core.database.CompanyAppDao
 import com.example.customlauncher.core.database.UserAppDao
 import com.example.customlauncher.core.database.model.CompanyAppEntity
@@ -41,12 +40,7 @@ class OfflineFirstAppRepository @Inject constructor(
 ) : AppRepository {
 
     private val pm = context.packageManager
-
-    private val resolveInfo
-        get() = pm.queryIntentActivities(
-            Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) },
-            PackageManager.GET_META_DATA
-        ).associateBy { it.packageName }
+    private val resolveInfo get() = pm.resolveInfoMap
 
     private val usageStatsManager = context
         .getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager

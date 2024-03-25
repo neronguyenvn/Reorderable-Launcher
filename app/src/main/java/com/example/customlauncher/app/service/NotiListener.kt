@@ -1,4 +1,4 @@
-package com.example.customlauncher.core.data.util
+package com.example.customlauncher.app.service
 
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
