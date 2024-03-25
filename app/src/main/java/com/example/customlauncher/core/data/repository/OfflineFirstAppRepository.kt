@@ -55,7 +55,7 @@ class OfflineFirstAppRepository @Inject constructor(
 
     private enum class AppType { User, Company }
 
-    override fun getAppsStream(): Flow<Map<Int, List<App>>> {
+    override fun getAppsStream(): Flow<List<List<App>>> {
         return userAppDao.observeAll().combine(companyAppDao.observeAll()) { users, companies ->
 
             val pagedUsers = users.groupBy { app -> app.page }.mapValues { entityList ->
@@ -74,7 +74,9 @@ class OfflineFirstAppRepository @Inject constructor(
             }
 
             return@combine pagedUsers.mergeWith(pagedCompanies)
+                .toSortedMap()
                 .mapValues { it.value.sortedBy { app -> app.index } }
+                .values.toList()
         }
     }
 

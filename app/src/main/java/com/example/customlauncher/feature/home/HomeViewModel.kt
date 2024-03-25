@@ -1,6 +1,5 @@
 package com.example.customlauncher.feature.home
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.customlauncher.core.data.AppRepository
@@ -36,7 +35,7 @@ sealed interface HomeUiState {
     data object Loading : HomeUiState
 
     data class HomeData(
-        val appPages: Map<Int, List<App>> = emptyMap(),
+        val appPages: List<List<App>> = emptyList(),
         val selectedApp: UserApp? = null,
         val isMoving: Boolean = false
     ) : HomeUiState
@@ -51,10 +50,12 @@ class HomeViewModel @Inject constructor(
     private val _selectedByLongClick = MutableStateFlow<UserApp?>(null)
     private val selectedByLongClick get() = _selectedByLongClick.value!!
 
-    private val _appPages = MutableStateFlow<Map<Int, List<App>>>(emptyMap())
+    private val _appPages = MutableStateFlow<List<List<App>>>(emptyList())
     private val appPages get() = _appPages.value
 
     private val _currentPage = MutableStateFlow(0)
+    private suspend fun getCurrentPage() = _currentPage.first()
+
     private val _isLoading = MutableStateFlow(true)
     private val _isMovingSelect = MutableStateFlow(false)
 
@@ -91,13 +92,11 @@ class HomeViewModel @Inject constructor(
             }
 
             is OnDragMove -> viewModelScope.launch {
-                val currentPage = _currentPage.first()
-                val newAppPages = appPages.mapValues {
-                    if (it.key == currentPage) {
-                        it.value.toMutableList().apply {
-                            add(event.to.index, removeAt(event.from.index))
-                        }
-                    } else it.value
+                val currentPage = getCurrentPage()
+                val newAppPages = appPages.toMutableList().apply {
+                    this[currentPage] = this[currentPage].toMutableList().apply {
+                        add(event.to.index, removeAt(event.from.index))
+                    }
                 }
                 _appPages.value = newAppPages
             }
@@ -106,7 +105,7 @@ class HomeViewModel @Inject constructor(
 
             is OnDragStop -> updateAppPositionJob = viewModelScope.launch {
                 delay(ITEM_POSITION_SET_DELAY)
-                appPages[_currentPage.first()]?.let { list ->
+                appPages[getCurrentPage()].let { list ->
                     for (i in minOf(event.from, event.to)..maxOf(event.from, event.to)) {
                         appRepo.moveInPage(i, list[i])
                     }
@@ -121,44 +120,28 @@ class HomeViewModel @Inject constructor(
             is HomeScreenEvent.OnMoveSelect -> {
                 if (!event.value) {
                     startCollect()
-                    clearCheckedAppsForMove()
                 } else {
                     cancelAllJobs()
-                    val newAppPages = appPages.toMutableMap().apply {
-                        set(this.keys.max() + 1, emptyList())
-                        compute(event.pageIndex!!) { _, value ->
-                            value!!.toMutableList().apply {
-                                this[event.index!!] = this[event.index].editChecked(true)
-                            }
-                        }
-                    }
-                    _appPages.value = newAppPages
+                    editAppChecked(true, event.pageIndex!!, event.index!!, true)
                 }
                 _isMovingSelect.value = event.value
             }
 
 
-            is HomeScreenEvent.OnItemCheck -> {
-                val newAppPages = appPages.mapValues {
-                    if (it.key == event.pageIndex) {
-                        it.value.toMutableList().apply {
-                            this[event.index] = this[event.index].editChecked(event.isChecked)
-                        }
-                    } else it.value
-                }
-                _appPages.value = newAppPages
-            }
+            is HomeScreenEvent.OnItemCheck -> editAppChecked(
+                isChecked = event.isChecked,
+                pageIndex = event.pageIndex,
+                index = event.index,
+            )
 
             is HomeScreenEvent.OnMoveConfirm -> viewModelScope.launch {
-                val moveApps = _appPages.value.values.flatMap { list ->
+                val moveApps = _appPages.value.flatMap { list ->
                     list.filter { it.isChecked }
                 }
                 appRepo.moveToPage(_currentPage.value, moveApps)
                 startCollect()
-                clearCheckedAppsForMove()
                 _isMovingSelect.value = false
             }
-
         }
     }
 
@@ -171,11 +154,7 @@ class HomeViewModel @Inject constructor(
 
     private fun startCollect() {
         collectAppsJob = appRepo.getAppsStream()
-            .onEach {
-                val appPages = it
-                Log.d("TABASA", appPages.toString())
-                _appPages.value = appPages
-            }
+            .onEach { _appPages.value = it }
             .launchIn(viewModelScope)
     }
 
@@ -186,9 +165,17 @@ class HomeViewModel @Inject constructor(
         updateAppPositionJob = null
     }
 
-    private fun clearCheckedAppsForMove() {
-        val newAppPages = appPages.mapValues {
-            it.value.map { app -> app.editChecked(false) }
+    private fun editAppChecked(
+        isChecked: Boolean,
+        pageIndex: Int,
+        index: Int,
+        shouldCreateNewPage: Boolean = false
+    ) {
+        val newAppPages = appPages.toMutableList().apply {
+            if (shouldCreateNewPage) add(emptyList())
+            this[pageIndex] = this[pageIndex].toMutableList().apply {
+                this[index] = this[index].editChecked(isChecked)
+            }
         }
         _appPages.value = newAppPages
     }

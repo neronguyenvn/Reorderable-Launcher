@@ -193,7 +193,7 @@ private fun AppGridUi(
             .reorderable(state)
     ) {
         homeScreenItems(
-            apps = uiState.appPages[pageIndex] ?: emptyList(),
+            apps = uiState.appPages[pageIndex],
             selectedPackageName = uiState.selectedApp?.packageName,
             gridState = state,
             itemHeight = itemHeight,

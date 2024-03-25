@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface AppRepository {
 
-    fun getAppsStream(): Flow<Map<Int, List<App>>>
+    fun getAppsStream(): Flow<List<List<App>>>
 
     fun updateGridCount(value: Int)
 
