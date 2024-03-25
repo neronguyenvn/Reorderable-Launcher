@@ -1,7 +1,5 @@
 package com.example.customlauncher.core.ui.appitem
 
-import android.view.ViewGroup
-import android.webkit.WebView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,11 +17,7 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,7 +25,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
@@ -42,6 +35,7 @@ import com.example.customlauncher.core.model.TooltipMenu
 import com.example.customlauncher.feature.home.HomeScreenEvent
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnItemCheck
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnMoveSelect
+import com.example.customlauncher.feature.home.HomeScreenEvent.ShowCompanyAppWeb
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,7 +50,6 @@ fun CompanyAppItem(
     modifier: Modifier = Modifier,
     onEvent: (HomeScreenEvent) -> Unit
 ) {
-    var showWebView by remember { mutableStateOf(false) }
     val tooltipState = rememberTooltipState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -92,7 +85,7 @@ fun CompanyAppItem(
                     ifFalse = {
                         detectPressOrDragAndReorder(
                             state = gridState,
-                            onClick = { showWebView = true },
+                            onClick = { onEvent(ShowCompanyAppWeb(app.urlWeb)) },
                             onLongClick = { coroutineScope.launch { tooltipState.show() } }
                         )
                     },
@@ -125,21 +118,6 @@ fun CompanyAppItem(
                 maxLines = 1
             )
         }
-    }
-
-    if (showWebView) {
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { context ->
-                WebView(context).apply {
-                    layoutParams = ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                    loadUrl(app.urlWeb)
-                }
-            }
-        )
     }
 }
 

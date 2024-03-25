@@ -15,6 +15,7 @@ import com.example.customlauncher.feature.home.HomeScreenEvent.OnNameEditConfirm
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
 import com.example.customlauncher.feature.home.HomeUiState.HomeData
 import com.example.customlauncher.feature.home.HomeUiState.Loading
+import com.example.customlauncher.feature.home.HomeUiState.WebData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -39,6 +40,10 @@ sealed interface HomeUiState {
         val selectedApp: UserApp? = null,
         val isMoving: Boolean = false
     ) : HomeUiState
+
+    data class WebData(
+        val url: String
+    )
 }
 
 
@@ -59,6 +64,8 @@ class HomeViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     private val _isMovingSelect = MutableStateFlow(false)
 
+    private val _companyWeb = MutableStateFlow<String?>(null)
+
     private var collectAppsJob: Job? = null
     private var updateAppPositionJob: Job? = null
 
@@ -66,9 +73,11 @@ class HomeViewModel @Inject constructor(
         _appPages,
         _selectedByLongClick,
         _isLoading,
-        _isMovingSelect
-    ) { pages, selected, loading, isMoving ->
+        _isMovingSelect,
+        _companyWeb
+    ) { pages, selected, loading, isMoving, web ->
         if (loading) return@combine Loading
+        if (web != null) return@combine WebData(web)
         HomeData(
             appPages = pages,
             selectedApp = selected,
@@ -142,6 +151,8 @@ class HomeViewModel @Inject constructor(
                 startCollect()
                 _isMovingSelect.value = false
             }
+
+            is HomeScreenEvent.ShowCompanyAppWeb -> _companyWeb.value = event.url
         }
     }
 

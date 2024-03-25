@@ -53,6 +53,7 @@ import com.example.customlauncher.core.model.App.UserApp
 import com.example.customlauncher.core.ui.appitem.CompanyAppItem
 import com.example.customlauncher.core.ui.appitem.UserAppItem
 import com.example.customlauncher.core.ui.pageslider.PageIndicator
+import com.example.customlauncher.core.ui.webview.ClWebView
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnCurrentPageChange
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragMove
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStart
@@ -83,6 +84,8 @@ sealed interface HomeScreenEvent {
         HomeScreenEvent
 
     data object OnMoveConfirm : HomeScreenEvent
+
+    data class ShowCompanyAppWeb(val url: String? = null) : HomeScreenEvent
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -117,51 +120,63 @@ fun HomeScreen(
         onDragEnd = { from, to -> viewModel.onEvent(OnDragStop(from, to)) }
     )
 
-    when (uiState) {
-        is HomeUiState.Loading -> LoadingEffect()
-        is HomeUiState.HomeData -> Scaffold(
-            containerColor = Color.Transparent,
-            modifier = Modifier.noRippleClickable { viewModel.onEvent(OnUserAppLongClick(null)) }
-        ) { paddings ->
-            val uiDataState = uiState as HomeUiState.HomeData
-            val pagerState = rememberPagerState { uiDataState.appPages.size }
+    Scaffold(
+        containerColor = Color.Transparent,
+        modifier = Modifier.noRippleClickable { viewModel.onEvent(OnUserAppLongClick(null)) }
+    ) { paddings ->
+        val paddingModifier = Modifier.padding(paddings)
 
-            LaunchedEffect(pagerState) {
-                snapshotFlow { pagerState.currentPage }.collect { page ->
-                    viewModel.onEvent(OnCurrentPageChange(page))
-                }
-            }
+        when (uiState) {
+            is HomeUiState.Loading -> LoadingEffect(paddingModifier)
+            is HomeUiState.WebData -> ClWebView(
+                url = (uiState as HomeUiState.WebData).url,
+                modifier = paddingModifier,
+                onEvent = viewModel::onEvent
+            )
 
-            Column(Modifier.padding(paddings)) {
-                AnimatedVisibility(visible = uiDataState.isMoving) {
-                    Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        Button(onClick = { viewModel.onEvent(OnMoveSelect(false)) }) {
-                            Text("Cancel")
-                        }
-                        Spacer(modifier = Modifier.weight(1f))
-                        Button(onClick = { viewModel.onEvent(OnMoveConfirm) }) {
-                            Text("Move Here")
-                        }
+            is HomeUiState.HomeData -> {
+                val uiDataState = uiState as HomeUiState.HomeData
+                val pagerState = rememberPagerState { uiDataState.appPages.size }
+
+                LaunchedEffect(pagerState) {
+                    snapshotFlow { pagerState.currentPage }.collect { page ->
+                        viewModel.onEvent(OnCurrentPageChange(page))
                     }
                 }
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    AppGridUi(
-                        uiState = uiDataState,
-                        columns = columns,
-                        rows = rows,
-                        pageIndex = it,
-                        state = state,
-                        onEvent = viewModel::onEvent
+
+                Column(paddingModifier) {
+                    AnimatedVisibility(visible = uiDataState.isMoving) {
+                        Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                            Button(onClick = { viewModel.onEvent(OnMoveSelect(false)) }) {
+                                Text("Cancel")
+                            }
+                            Spacer(modifier = Modifier.weight(1f))
+                            Button(onClick = { viewModel.onEvent(OnMoveConfirm) }) {
+                                Text("Move Here")
+                            }
+                        }
+                    }
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        AppGridUi(
+                            uiState = uiDataState,
+                            columns = columns,
+                            rows = rows,
+                            pageIndex = it,
+                            state = state,
+                            onEvent = viewModel::onEvent
+                        )
+                    }
+                    PageIndicator(
+                        index = pagerState.currentPage,
+                        count = uiDataState.appPages.size,
+                        modifier = Modifier
+                            .padding(vertical = 16.dp)
+                            .align(Alignment.CenterHorizontally)
                     )
                 }
-                PageIndicator(
-                    index = pagerState.currentPage,
-                    count = uiDataState.appPages.size,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
             }
         }
     }
@@ -246,12 +261,12 @@ private fun LazyGridScope.homeScreenItems(
 }
 
 @Composable
-private fun LoadingEffect() {
+private fun LoadingEffect(modifier: Modifier = Modifier) {
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
     val progress by animateLottieCompositionAsState(composition)
     LottieAnimation(
         composition = composition,
         progress = { progress },
-        modifier = Modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize()
     )
 }

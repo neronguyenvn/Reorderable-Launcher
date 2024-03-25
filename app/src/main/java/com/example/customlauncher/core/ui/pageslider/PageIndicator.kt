@@ -29,7 +29,6 @@ fun PageIndicator(
             Spacer(
                 modifier = Modifier
                     .padding(horizontal = 4.dp)
-                    .padding(top = 8.dp)
                     .size(size)
                     .background(
                         color = MaterialTheme.colorScheme.primary,

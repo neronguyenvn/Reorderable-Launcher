@@ -24,7 +24,8 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.CustomLauncher">
+        android:theme="@style/Theme.CustomLauncher"
+        android:usesCleartextTraffic="true">
 
         <activity
             android:name=".app.MainActivity"
