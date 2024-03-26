@@ -157,7 +157,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun setupInitialState() = viewModelScope.launch {
-        appRepo.refreshCompanyApps()
+        //  appRepo.refreshCompanyApps()
         appRepo.refreshUserApps()
         startCollect()
         _isLoading.value = false

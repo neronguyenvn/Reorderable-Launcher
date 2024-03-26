@@ -85,4 +85,7 @@ dependencies {
 
     // Lottie for Animation
     implementation(libs.lottie)
+
+    // DataStore for User Preferences
+    implementation(libs.androidx.dataStore.core)
 }
