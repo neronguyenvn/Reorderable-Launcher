@@ -69,7 +69,7 @@ dependencies {
     implementation(libs.coil.compose)
 
     // Hilt for Dependency Injection
-    implementation(libs.hilt.android.core)
+    implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.hilt.compiler)
 
@@ -84,7 +84,7 @@ dependencies {
     implementation(libs.ktor.serialization.json)
 
     // Lottie for Animation
-    implementation(libs.lottie)
+    implementation(libs.lottie.compose)
 
     // DataStore for User Preferences
     implementation(libs.androidx.dataStore.core)
