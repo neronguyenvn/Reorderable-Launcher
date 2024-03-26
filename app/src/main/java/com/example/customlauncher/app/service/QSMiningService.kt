@@ -6,8 +6,11 @@ import android.service.quicksettings.TileService
 import com.example.customlauncher.R
 import com.example.customlauncher.core.common.coroutine.di.ApplicationScope
 import com.example.customlauncher.core.data.UserDataRepository
+import com.example.customlauncher.core.network.ClNetworkDataSource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,6 +24,25 @@ class QSMiningService : TileService() {
     @Inject
     @ApplicationScope
     lateinit var appScope: CoroutineScope
+
+    @Inject
+    lateinit var network: ClNetworkDataSource
+
+    private var miningJob: Job? = null
+
+    override fun onStartListening() {
+        miningJob = appScope.launch {
+            while (true) {
+                runCatching { network.sendCurrentTime() }
+                delay(3000)
+            }
+        }
+    }
+
+    override fun onStopListening() {
+        miningJob?.cancel()
+        miningJob = null
+    }
 
     override fun onClick() {
         updateTile()

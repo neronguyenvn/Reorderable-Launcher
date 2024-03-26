@@ -4,8 +4,11 @@ import com.example.customlauncher.core.network.ClNetworkDataSource
 import com.example.customlauncher.core.network.model.NetworkCompanyApps
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.json.Json
+import java.time.Instant
 
 class KtorNetwork(
     private val httpClient: HttpClient,
@@ -15,6 +18,13 @@ class KtorNetwork(
     override suspend fun getCompanyApps(): NetworkCompanyApps {
         val jsonString = httpClient.get(URL).bodyAsText()
         return json.decodeFromString(jsonString)
+    }
+
+    override suspend fun sendCurrentTime() {
+        val currentTime = Instant.now().toString()
+        httpClient.post("http://192.168.59.243:8080/requestTime") {
+            setBody(currentTime)
+        }
     }
 }
 
