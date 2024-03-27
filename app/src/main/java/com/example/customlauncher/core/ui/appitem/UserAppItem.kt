@@ -32,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,16 +54,14 @@ import com.example.customlauncher.core.model.launch
 import com.example.customlauncher.core.model.showInfo
 import com.example.customlauncher.core.model.uninstall
 import com.example.customlauncher.feature.home.HomeScreenEvent
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnItemCheck
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnMoveSelect
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnAppCheckChange
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnNameEditConfirm
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserAppItem(
     app: App.UserApp,
-    isSelected: Boolean,
     gridState: ReorderableLazyGridState,
     isDragging: Boolean,
     isUiMoving: Boolean,
@@ -74,12 +73,12 @@ fun UserAppItem(
     val tooltipState = rememberTooltipState()
     var showEditNameDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(isSelected, isDragging) {
+    LaunchedEffect(isDragging) {
         if (isDragging) {
-            onEvent(OnUserAppLongClick(null))
+            tooltipState.dismiss()
         }
-        if (isSelected) tooltipState.show() else tooltipState.dismiss()
     }
 
     Box(
@@ -88,12 +87,12 @@ fun UserAppItem(
             ifFalse = {
                 detectPressOrDragAndReorder(
                     state = gridState,
-                    onLongClick = { onEvent(OnUserAppLongClick(app)) },
-                    onClick = { app.launch(context) }
+                    onClick = { app.launch(context) },
+                    onLongClick = { coroutineScope.launch { tooltipState.show() } }
                 )
             },
             ifTrue = {
-                clickable { onEvent(OnItemCheck(!app.isChecked, pageIndex, index)) }
+                clickable { onEvent(OnAppCheckChange(!app.isChecked, pageIndex, index)) }
             }
         )
     ) {
@@ -105,15 +104,23 @@ fun UserAppItem(
                 TooltipBoxUi(
                     app = app,
                     showEditNameDialog = { showEditNameDialog = true },
-                    changeToMovingUi = { onEvent(OnMoveSelect(true, pageIndex, index)) },
-                    cancelSelected = { onEvent(OnUserAppLongClick(null)) },
+                    changeToMovingUi = {
+                        onEvent(
+                            HomeScreenEvent.OnSelectChange(
+                                true,
+                                pageIndex,
+                                index
+                            )
+                        )
+                    },
+                    cancelSelected = { tooltipState.dismiss() }
                 )
             }) {
             AppItemUi(
                 app = app,
                 isUiMoving = isUiMoving,
             ) {
-                onEvent(OnItemCheck(it, pageIndex, index))
+                onEvent(OnAppCheckChange(it, pageIndex, index))
             }
         }
     }
@@ -123,7 +130,7 @@ fun UserAppItem(
             currentName = app.name,
             dismiss = { showEditNameDialog = false }
         ) { newName ->
-            onEvent(OnNameEditConfirm(newName))
+            onEvent(OnNameEditConfirm(newName, app))
         }
     }
 }

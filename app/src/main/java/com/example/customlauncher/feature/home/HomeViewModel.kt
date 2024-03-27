@@ -4,15 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.customlauncher.core.data.AppRepository
 import com.example.customlauncher.core.model.App
-import com.example.customlauncher.core.model.App.UserApp
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnCurrentPageChange
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragMove
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStart
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStop
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnGridCountChange
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnInitialSetup
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnInit
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnNameEditConfirm
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
 import com.example.customlauncher.feature.home.HomeUiState.HomeData
 import com.example.customlauncher.feature.home.HomeUiState.Loading
 import com.example.customlauncher.feature.home.HomeUiState.WebData
@@ -37,13 +35,10 @@ sealed interface HomeUiState {
 
     data class HomeData(
         val appPages: List<List<App>> = emptyList(),
-        val selectedApp: UserApp? = null,
-        val isMoving: Boolean = false
+        val isSelecting: Boolean = false
     ) : HomeUiState
 
-    data class WebData(
-        val url: String
-    )
+    data class WebData(val url: String) : HomeUiState
 }
 
 
@@ -51,10 +46,6 @@ sealed interface HomeUiState {
 class HomeViewModel @Inject constructor(
     private val appRepo: AppRepository,
 ) : ViewModel() {
-
-    private val _selectedByLongClick = MutableStateFlow<UserApp?>(null)
-    private val selectedByLongClick get() = _selectedByLongClick.value!!
-
     private val _appPages = MutableStateFlow<List<List<App>>>(emptyList())
     private val appPages get() = _appPages.value
 
@@ -62,7 +53,7 @@ class HomeViewModel @Inject constructor(
     private suspend fun getCurrentPage() = _currentPage.first()
 
     private val _isLoading = MutableStateFlow(true)
-    private val _isMovingSelect = MutableStateFlow(false)
+    private val _isSelecting = MutableStateFlow(false)
 
     private val _companyWeb = MutableStateFlow<String?>(null)
 
@@ -71,17 +62,15 @@ class HomeViewModel @Inject constructor(
 
     val uiState = combine(
         _appPages,
-        _selectedByLongClick,
         _isLoading,
-        _isMovingSelect,
+        _isSelecting,
         _companyWeb
-    ) { pages, selected, loading, isMoving, web ->
+    ) { pages, loading, selecting, web ->
         if (loading) return@combine Loading
         if (web != null) return@combine WebData(web)
         HomeData(
             appPages = pages,
-            selectedApp = selected,
-            isMoving = isMoving
+            isSelecting = selecting
         )
     }.stateIn(
         scope = viewModelScope,
@@ -91,13 +80,10 @@ class HomeViewModel @Inject constructor(
 
     fun onEvent(event: HomeScreenEvent) {
         when (event) {
-            is OnInitialSetup -> setupInitialState()
-
-            is OnUserAppLongClick -> _selectedByLongClick.value = event.userApp
+            is OnInit -> setupInitialState()
 
             is OnNameEditConfirm -> viewModelScope.launch {
-                appRepo.editAppName(event.value, selectedByLongClick)
-                _selectedByLongClick.value = null
+                appRepo.editAppName(event.newName, event.app as App.UserApp)
             }
 
             is OnDragMove -> viewModelScope.launch {
@@ -126,38 +112,38 @@ class HomeViewModel @Inject constructor(
 
             is OnCurrentPageChange -> _currentPage.value = event.value
 
-            is HomeScreenEvent.OnMoveSelect -> {
+            is HomeScreenEvent.OnSelectChange -> {
                 if (!event.value) {
                     startCollect()
                 } else {
                     cancelAllJobs()
                     editAppChecked(true, event.pageIndex!!, event.index!!, true)
                 }
-                _isMovingSelect.value = event.value
+                _isSelecting.value = event.value
             }
 
 
-            is HomeScreenEvent.OnItemCheck -> editAppChecked(
+            is HomeScreenEvent.OnAppCheckChange -> editAppChecked(
                 isChecked = event.isChecked,
                 pageIndex = event.pageIndex,
                 index = event.index,
             )
 
-            is HomeScreenEvent.OnMoveConfirm -> viewModelScope.launch {
+            is HomeScreenEvent.OnAppMoveConfirm -> viewModelScope.launch {
                 val moveApps = _appPages.value.flatMap { list ->
                     list.filter { it.isChecked }
                 }
                 appRepo.moveToPage(_currentPage.value, moveApps)
                 startCollect()
-                _isMovingSelect.value = false
+                _isSelecting.value = false
             }
 
-            is HomeScreenEvent.ShowCompanyAppWeb -> _companyWeb.value = event.url
+            is HomeScreenEvent.OnWebDataChange -> _companyWeb.value = event.url
         }
     }
 
     private fun setupInitialState() = viewModelScope.launch {
-        //  appRepo.refreshCompanyApps()
+        runCatching { appRepo.refreshCompanyApps() }
         appRepo.refreshUserApps()
         startCollect()
         _isLoading.value = false

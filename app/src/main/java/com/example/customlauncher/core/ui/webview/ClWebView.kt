@@ -21,7 +21,7 @@ fun ClWebView(
 ) {
 
     BackHandler {
-        onEvent(HomeScreenEvent.ShowCompanyAppWeb(null))
+        onEvent(HomeScreenEvent.OnWebDataChange(null))
     }
 
     AndroidView(

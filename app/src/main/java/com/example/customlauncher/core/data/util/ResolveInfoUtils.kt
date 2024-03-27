@@ -20,7 +20,7 @@ fun ResolveInfo.asEntity(
 ) = UserAppEntity(
     name = loadLabel(packageManager).toString(),
     packageName = packageName,
-    version = packageManager.getPackageInfo(packageName, 0).versionName,
+    version = packageManager.getPackageInfo(packageName, 0).versionName ?: "",
     index = index,
     page = page
 )

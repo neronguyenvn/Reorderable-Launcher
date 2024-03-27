@@ -33,9 +33,9 @@ import com.example.customlauncher.core.designsystem.util.conditional
 import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.model.TooltipMenu
 import com.example.customlauncher.feature.home.HomeScreenEvent
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnItemCheck
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnMoveSelect
-import com.example.customlauncher.feature.home.HomeScreenEvent.ShowCompanyAppWeb
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnAppCheckChange
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnSelectChange
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnWebDataChange
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,7 +70,7 @@ fun CompanyAppItem(
         enableUserInput = false,
         tooltip = {
             TooltipBoxUi(
-                changeToMovingUi = { onEvent(OnMoveSelect(true, pageIndex, index)) },
+                changeToMovingUi = { onEvent(OnSelectChange(true, pageIndex, index)) },
                 cancelSelected = { tooltipState.dismiss() }
             )
         }) {
@@ -85,12 +85,12 @@ fun CompanyAppItem(
                     ifFalse = {
                         detectPressOrDragAndReorder(
                             state = gridState,
-                            onClick = { onEvent(ShowCompanyAppWeb(app.urlWeb)) },
+                            onClick = { onEvent(OnWebDataChange(app.urlWeb)) },
                             onLongClick = { coroutineScope.launch { tooltipState.show() } }
                         )
                     },
                     ifTrue = {
-                        clickable { onEvent(OnItemCheck(!app.isChecked, pageIndex, index)) }
+                        clickable { onEvent(OnAppCheckChange(!app.isChecked, pageIndex, index)) }
                     }
                 )
         ) {
@@ -99,7 +99,7 @@ fun CompanyAppItem(
                     Checkbox(
                         checked = app.isChecked,
                         onCheckedChange = {
-                            onEvent(OnItemCheck(it, pageIndex, index))
+                            onEvent(OnAppCheckChange(it, pageIndex, index))
                         }
                     )
                 }

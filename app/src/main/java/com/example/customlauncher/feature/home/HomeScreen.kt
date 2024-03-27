@@ -48,45 +48,42 @@ import com.example.customlauncher.core.designsystem.component.reorderablelazygri
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.rememberReorderableLazyGridState
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.reorderable
-import com.example.customlauncher.core.designsystem.util.noRippleClickable
 import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.model.App.UserApp
 import com.example.customlauncher.core.ui.appitem.CompanyAppItem
 import com.example.customlauncher.core.ui.appitem.UserAppItem
 import com.example.customlauncher.core.ui.pageslider.PageIndicator
 import com.example.customlauncher.core.ui.webview.ClWebView
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnAppMoveConfirm
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnCurrentPageChange
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragMove
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStart
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStop
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnGridCountChange
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnInitialSetup
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnMoveConfirm
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnMoveSelect
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnUserAppLongClick
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnInit
+import com.example.customlauncher.feature.home.HomeScreenEvent.OnSelectChange
 import kotlin.math.roundToInt
 
 sealed interface HomeScreenEvent {
-    data object OnInitialSetup : HomeScreenEvent
-    data class OnUserAppLongClick(val userApp: UserApp?) : HomeScreenEvent
-    data class OnNameEditConfirm(val value: String) : HomeScreenEvent
+    data object OnInit : HomeScreenEvent
+    data class OnNameEditConfirm(val newName: String, val app: App) : HomeScreenEvent
     data class OnDragMove(val from: ItemPosition, val to: ItemPosition) : HomeScreenEvent
     data object OnDragStart : HomeScreenEvent
     data class OnDragStop(val from: Int, val to: Int) : HomeScreenEvent
     data class OnGridCountChange(val value: Int) : HomeScreenEvent
     data class OnCurrentPageChange(val value: Int) : HomeScreenEvent
-    data class OnMoveSelect(
+    data class OnSelectChange(
         val value: Boolean,
         val pageIndex: Int? = null,
         val index: Int? = null
     ) : HomeScreenEvent
 
-    data class OnItemCheck(val isChecked: Boolean, val pageIndex: Int, val index: Int) :
+    data class OnAppCheckChange(val isChecked: Boolean, val pageIndex: Int, val index: Int) :
         HomeScreenEvent
 
-    data object OnMoveConfirm : HomeScreenEvent
+    data object OnAppMoveConfirm : HomeScreenEvent
 
-    data class ShowCompanyAppWeb(val url: String? = null) : HomeScreenEvent
+    data class OnWebDataChange(val url: String? = null) : HomeScreenEvent
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -96,7 +93,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     LaunchedEffect(Unit) {
-        viewModel.onEvent(OnInitialSetup)
+        viewModel.onEvent(OnInit)
     }
 
     val columns = when (windowSizeClass.widthSizeClass) {
@@ -121,12 +118,8 @@ fun HomeScreen(
         onDragEnd = { from, to -> viewModel.onEvent(OnDragStop(from, to)) }
     )
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        modifier = Modifier.noRippleClickable { viewModel.onEvent(OnUserAppLongClick(null)) }
-    ) { paddings ->
+    Scaffold(containerColor = Color.LightGray) { paddings ->
         val paddingModifier = Modifier.padding(paddings)
-
         when (uiState) {
             is HomeUiState.Loading -> LoadingEffect(paddingModifier)
             is HomeUiState.WebData -> ClWebView(
@@ -148,13 +141,13 @@ fun HomeScreen(
                 }
 
                 Column(paddingModifier) {
-                    AnimatedVisibility(visible = uiDataState.isMoving) {
+                    AnimatedVisibility(visible = uiDataState.isSelecting) {
                         Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                            Button(onClick = { viewModel.onEvent(OnMoveSelect(false)) }) {
+                            Button(onClick = { viewModel.onEvent(OnSelectChange(false)) }) {
                                 Text("Cancel")
                             }
                             Spacer(modifier = Modifier.weight(1f))
-                            Button(onClick = { viewModel.onEvent(OnMoveConfirm) }) {
+                            Button(onClick = { viewModel.onEvent(OnAppMoveConfirm) }) {
                                 Text("Move Here")
                             }
                         }
@@ -212,10 +205,9 @@ private fun AppGridUi(
     ) {
         homeScreenItems(
             apps = uiState.appPages[pageIndex],
-            selectedPackageName = uiState.selectedApp?.packageName,
             gridState = state,
             itemHeight = itemHeight,
-            isMovingUi = uiState.isMoving,
+            isMovingUi = uiState.isSelecting,
             pageIndex = pageIndex,
             onEvent = onEvent
         )
@@ -224,7 +216,6 @@ private fun AppGridUi(
 
 private fun LazyGridScope.homeScreenItems(
     apps: List<App>,
-    selectedPackageName: String?,
     gridState: ReorderableLazyGridState,
     itemHeight: Dp,
     isMovingUi: Boolean,
@@ -240,7 +231,6 @@ private fun LazyGridScope.homeScreenItems(
             when (app) {
                 is UserApp -> UserAppItem(
                     app = app,
-                    isSelected = selectedPackageName == app.packageName,
                     gridState = gridState,
                     isDragging = isDragging,
                     isUiMoving = isMovingUi,
