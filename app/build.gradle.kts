@@ -88,4 +88,7 @@ dependencies {
 
     // DataStore for User Preferences
     implementation(libs.androidx.dataStore.core)
+
+    // Glance for Widget
+    implementation(libs.glance.appwidget)
 }
