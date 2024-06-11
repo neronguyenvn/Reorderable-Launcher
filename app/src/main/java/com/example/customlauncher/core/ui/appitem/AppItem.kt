@@ -60,8 +60,8 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UserAppItem(
-    app: App.UserApp,
+fun AppItem(
+    app: App,
     gridState: ReorderableLazyGridState,
     isDragging: Boolean,
     isUiMoving: Boolean,
@@ -137,7 +137,7 @@ fun UserAppItem(
 
 @Composable
 private fun AppItemUi(
-    app: App.UserApp,
+    app: App,
     isUiMoving: Boolean,
     onItemSelect: (Boolean) -> Unit
 ) {
@@ -183,7 +183,7 @@ private fun AppItemUi(
 
 @Composable
 private fun TooltipBoxUi(
-    app: App.UserApp,
+    app: App,
     showEditNameDialog: () -> Unit,
     changeToMovingUi: () -> Unit,
     cancelSelected: () -> Unit

@@ -2,22 +2,17 @@ package com.example.customlauncher.core.data
 
 import android.service.notification.StatusBarNotification
 import com.example.customlauncher.core.model.App
-import com.example.customlauncher.core.model.App.UserApp
 import kotlinx.coroutines.flow.Flow
 
 interface AppRepository {
 
     fun getAppsStream(): Flow<List<List<App>>>
 
-    fun updateGridCount(value: Int)
+    suspend fun refreshApps()
 
-    suspend fun refreshUserApps()
+    suspend fun editAppName(newName: String, app: App)
 
-    suspend fun refreshCompanyApps()
-
-    suspend fun editAppName(newName: String, app: UserApp)
-
-    suspend fun handleNotis(notifications: List<StatusBarNotification>)
+    suspend fun handleNotifications(notifications: List<StatusBarNotification>)
 
     suspend fun moveInPage(toIndex: Int, app: App)
 

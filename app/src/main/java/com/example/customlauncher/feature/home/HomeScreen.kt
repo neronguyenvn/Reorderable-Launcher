@@ -3,6 +3,7 @@ package com.example.customlauncher.feature.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,10 +18,9 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.windowsizeclass.WindowSizeClass
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,40 +38,41 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.animateLottieCompositionAsState
-import com.airbnb.lottie.compose.rememberLottieComposition
-import com.example.customlauncher.R
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ItemPosition
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableItem
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.rememberReorderableLazyGridState
 import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.reorderable
 import com.example.customlauncher.core.model.App
-import com.example.customlauncher.core.model.App.UserApp
-import com.example.customlauncher.core.ui.appitem.CompanyAppItem
-import com.example.customlauncher.core.ui.appitem.UserAppItem
+import com.example.customlauncher.core.ui.appitem.AppItem
 import com.example.customlauncher.core.ui.pageslider.PageIndicator
-import com.example.customlauncher.core.ui.webview.ClWebView
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnAppMoveConfirm
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnCurrentPageChange
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragMove
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStart
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStop
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnGridCountChange
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnInit
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnSelectChange
+import com.example.customlauncher.feature.home.HomeScreenEvent.UpdateMaxAppsPerPage
 import kotlin.math.roundToInt
 
 sealed interface HomeScreenEvent {
+
     data object OnInit : HomeScreenEvent
-    data class OnNameEditConfirm(val newName: String, val app: App) : HomeScreenEvent
+
+    data class OnNameEditConfirm(
+        val newName: String,
+        val app: App
+    ) : HomeScreenEvent
+
     data class OnDragMove(val from: ItemPosition, val to: ItemPosition) : HomeScreenEvent
+
     data object OnDragStart : HomeScreenEvent
+
     data class OnDragStop(val from: Int, val to: Int) : HomeScreenEvent
-    data class OnGridCountChange(val value: Int) : HomeScreenEvent
+
     data class OnCurrentPageChange(val value: Int) : HomeScreenEvent
+
     data class OnSelectChange(
         val value: Boolean,
         val pageIndex: Int? = null,
@@ -83,32 +84,22 @@ sealed interface HomeScreenEvent {
 
     data object OnAppMoveConfirm : HomeScreenEvent
 
-    data class OnWebDataChange(val url: String? = null) : HomeScreenEvent
+    data class UpdateMaxAppsPerPage(val count: Int) : HomeScreenEvent
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun HomeScreen(
-    windowSizeClass: WindowSizeClass,
-    viewModel: HomeViewModel = hiltViewModel()
-) {
+fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
     LaunchedEffect(Unit) {
         viewModel.onEvent(OnInit)
     }
 
-    val columns = when (windowSizeClass.widthSizeClass) {
-        WindowWidthSizeClass.Compact -> 5
-        WindowWidthSizeClass.Medium -> 7
-        WindowWidthSizeClass.Expanded -> 8
-        else -> throw Exception()
-    }
-
+    val columns = 5
     val rows = LocalConfiguration.current.run {
         screenHeightDp / (screenWidthDp * 1.5 / columns).roundToInt()
     }
-
-    LaunchedEffect(columns, rows) {
-        viewModel.onEvent(OnGridCountChange(columns * rows))
+    LaunchedEffect(rows) {
+        viewModel.onEvent(UpdateMaxAppsPerPage(columns * rows))
     }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -122,11 +113,6 @@ fun HomeScreen(
         val paddingModifier = Modifier.padding(paddings)
         when (uiState) {
             is HomeUiState.Loading -> LoadingEffect(paddingModifier)
-            is HomeUiState.WebData -> ClWebView(
-                url = (uiState as HomeUiState.WebData).url,
-                modifier = paddingModifier,
-                onEvent = viewModel::onEvent
-            )
 
             is HomeUiState.HomeData -> {
                 BackHandler { Unit }
@@ -222,44 +208,31 @@ private fun LazyGridScope.homeScreenItems(
     pageIndex: Int,
     onEvent: (HomeScreenEvent) -> Unit,
 ) {
-    itemsIndexed(apps, { _: Int, item: App -> item.packageName }) { index, app ->
+    itemsIndexed(
+        items = apps,
+        contentType = { _: Int, item: App -> item.packageName }
+    ) { index, app ->
         ReorderableItem(
             reorderableState = gridState,
             key = app.packageName,
             modifier = Modifier.height(itemHeight)
         ) { isDragging ->
-            when (app) {
-                is UserApp -> UserAppItem(
-                    app = app,
-                    gridState = gridState,
-                    isDragging = isDragging,
-                    isUiMoving = isMovingUi,
-                    pageIndex = pageIndex,
-                    index = index,
-                    onEvent = onEvent
-                )
-
-                is App.CompanyApp -> CompanyAppItem(
-                    app = app,
-                    gridState = gridState,
-                    pageIndex = pageIndex,
-                    index = index,
-                    isDragging = isDragging,
-                    isMovingUi = isMovingUi,
-                    onEvent = onEvent
-                )
-            }
+            AppItem(
+                app = app,
+                gridState = gridState,
+                isDragging = isDragging,
+                isUiMoving = isMovingUi,
+                pageIndex = pageIndex,
+                index = index,
+                onEvent = onEvent
+            )
         }
     }
 }
 
 @Composable
 private fun LoadingEffect(modifier: Modifier = Modifier) {
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
-    val progress by animateLottieCompositionAsState(composition)
-    LottieAnimation(
-        composition = composition,
-        progress = { progress },
-        modifier = modifier.fillMaxSize()
-    )
+    Box(modifier = modifier.fillMaxSize()) {
+        LinearProgressIndicator(Modifier.align(Alignment.Center))
+    }
 }

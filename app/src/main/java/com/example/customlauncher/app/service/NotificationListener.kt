@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class NotiListener : NotificationListenerService() {
+class NotificationListener : NotificationListenerService() {
 
     @Inject
     lateinit var appRepo: AppRepository
@@ -48,7 +48,7 @@ class NotiListener : NotificationListenerService() {
 
     private fun requestApplicationListUpdate(notifications: List<StatusBarNotification>) {
         appScope.launch {
-            appRepo.handleNotis(notifications)
+            appRepo.handleNotifications(notifications)
         }
     }
 }

@@ -3,7 +3,7 @@ package com.example.customlauncher.core.data.util
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
-import com.example.customlauncher.core.database.model.UserAppEntity
+import com.example.customlauncher.core.database.model.AppEntity
 
 val PackageManager.resolveInfoMap: Map<String, ResolveInfo>
     get() = this.queryIntentActivities(
@@ -17,7 +17,7 @@ fun ResolveInfo.asEntity(
     packageManager: PackageManager,
     index: Int,
     page: Int
-) = UserAppEntity(
+) = AppEntity(
     name = loadLabel(packageManager).toString(),
     packageName = packageName,
     version = packageManager.getPackageInfo(packageName, 0).versionName ?: "",

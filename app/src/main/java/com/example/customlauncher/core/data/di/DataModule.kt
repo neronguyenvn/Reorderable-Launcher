@@ -1,9 +1,7 @@
 package com.example.customlauncher.core.data.di
 
 import com.example.customlauncher.core.data.AppRepository
-import com.example.customlauncher.core.data.UserDataRepository
 import com.example.customlauncher.core.data.repository.OfflineFirstAppRepository
-import com.example.customlauncher.core.data.repository.OfflineFirstUserDataRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -19,9 +17,4 @@ abstract class DataModule {
     abstract fun bindsApplicationRepository(
         appRepo: OfflineFirstAppRepository
     ): AppRepository
-
-    @Binds
-    abstract fun bindsUserDataRepository(
-        userDataRepository: OfflineFirstUserDataRepository
-    ): UserDataRepository
 }

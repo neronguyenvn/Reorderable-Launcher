@@ -9,14 +9,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import com.example.customlauncher.core.designsystem.theme.CustomLauncherTheme
 import com.example.customlauncher.feature.home.HomeScreen
 import dagger.hilt.android.AndroidEntryPoint
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
-@Suppress("DEPRECATION")
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,7 +25,7 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             CustomLauncherTheme {
-                HomeScreen(calculateWindowSizeClass(this))
+                HomeScreen()
             }
         }
     }

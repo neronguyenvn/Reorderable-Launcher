@@ -8,12 +8,11 @@ import com.example.customlauncher.feature.home.HomeScreenEvent.OnCurrentPageChan
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragMove
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStart
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStop
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnGridCountChange
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnInit
 import com.example.customlauncher.feature.home.HomeScreenEvent.OnNameEditConfirm
+import com.example.customlauncher.feature.home.HomeScreenEvent.UpdateMaxAppsPerPage
 import com.example.customlauncher.feature.home.HomeUiState.HomeData
 import com.example.customlauncher.feature.home.HomeUiState.Loading
-import com.example.customlauncher.feature.home.HomeUiState.WebData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -37,8 +36,6 @@ sealed interface HomeUiState {
         val appPages: List<List<App>> = emptyList(),
         val isSelecting: Boolean = false
     ) : HomeUiState
-
-    data class WebData(val url: String) : HomeUiState
 }
 
 
@@ -55,8 +52,6 @@ class HomeViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     private val _isSelecting = MutableStateFlow(false)
 
-    private val _companyWeb = MutableStateFlow<String?>(null)
-
     private var collectAppsJob: Job? = null
     private var updateAppPositionJob: Job? = null
 
@@ -64,10 +59,8 @@ class HomeViewModel @Inject constructor(
         _appPages,
         _isLoading,
         _isSelecting,
-        _companyWeb
-    ) { pages, loading, selecting, web ->
+    ) { pages, loading, selecting ->
         if (loading) return@combine Loading
-        if (web != null) return@combine WebData(web)
         HomeData(
             appPages = pages,
             isSelecting = selecting
@@ -83,7 +76,7 @@ class HomeViewModel @Inject constructor(
             is OnInit -> setupInitialState()
 
             is OnNameEditConfirm -> viewModelScope.launch {
-                appRepo.editAppName(event.newName, event.app as App.UserApp)
+                appRepo.editAppName(event.newName, event.app)
             }
 
             is OnDragMove -> viewModelScope.launch {
@@ -107,8 +100,6 @@ class HomeViewModel @Inject constructor(
                     startCollect()
                 }
             }
-
-            is OnGridCountChange -> appRepo.updateGridCount(event.value)
 
             is OnCurrentPageChange -> _currentPage.value = event.value
 
@@ -138,13 +129,12 @@ class HomeViewModel @Inject constructor(
                 _isSelecting.value = false
             }
 
-            is HomeScreenEvent.OnWebDataChange -> _companyWeb.value = event.url
+            is UpdateMaxAppsPerPage -> appRepo.
         }
     }
 
     private fun setupInitialState() = viewModelScope.launch {
-        runCatching { appRepo.refreshCompanyApps() }
-        appRepo.refreshUserApps()
+        appRepo.refreshApps()
         startCollect()
         _isLoading.value = false
     }
@@ -171,7 +161,7 @@ class HomeViewModel @Inject constructor(
         val newAppPages = appPages.toMutableList().apply {
             if (shouldCreateNewPage) add(emptyList())
             this[pageIndex] = this[pageIndex].toMutableList().apply {
-                this[index] = this[index].editChecked(isChecked)
+                this[index] = this[index].copy(isChecked = isChecked)
             }
         }
         _appPages.value = newAppPages

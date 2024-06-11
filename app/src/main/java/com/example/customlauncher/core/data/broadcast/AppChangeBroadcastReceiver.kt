@@ -38,7 +38,7 @@ class AppChangeBroadcastReceiver @Inject constructor(
 
     private fun requestApplicationListUpdate() {
         applicationScope.launch {
-            applicationRepository.refreshUserApps()
+            applicationRepository.refreshApps()
         }
     }
 }

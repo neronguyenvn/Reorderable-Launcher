@@ -3,23 +3,23 @@ package com.example.customlauncher.core.database
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
-import com.example.customlauncher.core.database.model.UserAppEntity
+import com.example.customlauncher.core.database.model.AppEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface UserAppDao {
+interface AppDao {
 
     @Query("SELECT * FROM UserApp")
-    fun observeAll(): Flow<List<UserAppEntity>>
+    fun observeAll(): Flow<List<AppEntity>>
 
     @Query("SELECT * FROM UserApp")
-    suspend fun getAll(): List<UserAppEntity>
+    suspend fun getAll(): List<AppEntity>
 
     @Upsert
-    suspend fun upsert(applicationEntity: UserAppEntity)
+    suspend fun upsert(applicationEntity: AppEntity)
 
     @Query("SELECT * FROM UserApp WHERE packageName = :packageName")
-    suspend fun getByPackageName(packageName: String): UserAppEntity?
+    suspend fun getByPackageName(packageName: String): AppEntity?
 
     @Query("UPDATE UserApp SET name = :newName WHERE packageName = :packageName")
     suspend fun updateName(newName: String, packageName: String)
