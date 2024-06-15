@@ -1,21 +1,18 @@
 [versions]
-androidGradlePlugin = "8.3.1"
-androidxActivity = "1.8.2"
-androidxAppCompat = "1.6.1"
-androidxComposeBom = "2024.03.00"
-androidxComposeCompiler = "1.5.9"
+androidGradlePlugin = "8.5.0"
+androidxActivity = "1.9.0"
+androidxComposeBom = "2024.06.00"
 androidxHiltNavigationCompose = "1.2.0"
 androidxLifecycle = "2.7.0"
 androidxNavigation = "2.7.7"
 coil = "2.6.0"
-hilt = "2.51"
-kotlin = "1.9.22"
-ksp = "1.9.22-1.0.18"
+hilt = "2.51.1"
+kotlin = "2.0.0"
+ksp = "2.0.0-1.0.21"
 room = "2.6.1"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
-androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidxAppCompat" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
 androidx-compose-material-iconsExtended = { group = "androidx.compose.material", name = "material-icons-extended" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
@@ -31,7 +28,7 @@ room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

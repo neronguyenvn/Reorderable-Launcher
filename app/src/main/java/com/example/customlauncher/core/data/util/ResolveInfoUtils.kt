@@ -5,7 +5,7 @@ import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import com.example.customlauncher.core.database.model.AppEntity
 
-val PackageManager.resolveInfoMap: Map<String, ResolveInfo>
+val PackageManager.appInfoMap: Map<String, ResolveInfo>
     get() = this.queryIntentActivities(
         Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) },
         PackageManager.GET_META_DATA

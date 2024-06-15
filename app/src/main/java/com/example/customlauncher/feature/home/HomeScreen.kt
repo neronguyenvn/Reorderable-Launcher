@@ -46,46 +46,48 @@ import com.example.customlauncher.core.designsystem.component.reorderablelazygri
 import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.ui.appitem.AppItem
 import com.example.customlauncher.core.ui.pageslider.PageIndicator
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnAppMoveConfirm
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnCurrentPageChange
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragMove
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStart
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStop
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnInit
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnSelectChange
-import com.example.customlauncher.feature.home.HomeScreenEvent.UpdateMaxAppsPerPage
+import com.example.customlauncher.feature.home.HomeEvent.OnAppMoveConfirm
+import com.example.customlauncher.feature.home.HomeEvent.OnCurrentPageChange
+import com.example.customlauncher.feature.home.HomeEvent.OnDragMove
+import com.example.customlauncher.feature.home.HomeEvent.OnDragStart
+import com.example.customlauncher.feature.home.HomeEvent.OnDragStop
+import com.example.customlauncher.feature.home.HomeEvent.OnInit
+import com.example.customlauncher.feature.home.HomeEvent.OnSelectChange
+import com.example.customlauncher.feature.home.HomeEvent.UpdateMaxAppsPerPage
 import kotlin.math.roundToInt
 
-sealed interface HomeScreenEvent {
+sealed interface HomeEvent {
 
-    data object OnInit : HomeScreenEvent
+    data object OnInit : HomeEvent
 
     data class OnNameEditConfirm(
         val newName: String,
         val app: App
-    ) : HomeScreenEvent
+    ) : HomeEvent
 
-    data class OnDragMove(val from: ItemPosition, val to: ItemPosition) : HomeScreenEvent
+    data class OnDragMove(val from: ItemPosition, val to: ItemPosition) : HomeEvent
 
-    data object OnDragStart : HomeScreenEvent
+    data object OnDragStart : HomeEvent
 
-    data class OnDragStop(val from: Int, val to: Int) : HomeScreenEvent
+    data class OnDragStop(val from: Int, val to: Int) : HomeEvent
 
-    data class OnCurrentPageChange(val value: Int) : HomeScreenEvent
+    data class OnCurrentPageChange(val value: Int) : HomeEvent
 
     data class OnSelectChange(
         val value: Boolean,
         val pageIndex: Int? = null,
         val index: Int? = null
-    ) : HomeScreenEvent
+    ) : HomeEvent
 
     data class OnAppCheckChange(val isChecked: Boolean, val pageIndex: Int, val index: Int) :
-        HomeScreenEvent
+        HomeEvent
 
-    data object OnAppMoveConfirm : HomeScreenEvent
+    data object OnAppMoveConfirm : HomeEvent
 
-    data class UpdateMaxAppsPerPage(val count: Int) : HomeScreenEvent
+    data class UpdateMaxAppsPerPage(val count: Int) : HomeEvent
 }
+
+private const val COLUMNS = 5
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -94,12 +96,11 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         viewModel.onEvent(OnInit)
     }
 
-    val columns = 5
     val rows = LocalConfiguration.current.run {
-        screenHeightDp / (screenWidthDp * 1.5 / columns).roundToInt()
+        screenHeightDp / (screenWidthDp * 1.5 / COLUMNS).roundToInt()
     }
     LaunchedEffect(rows) {
-        viewModel.onEvent(UpdateMaxAppsPerPage(columns * rows))
+        viewModel.onEvent(UpdateMaxAppsPerPage(COLUMNS * rows))
     }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -113,7 +114,6 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         val paddingModifier = Modifier.padding(paddings)
         when (uiState) {
             is HomeUiState.Loading -> LoadingEffect(paddingModifier)
-
             is HomeUiState.HomeData -> {
                 BackHandler { Unit }
 
@@ -144,7 +144,6 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                     ) {
                         AppGridUi(
                             uiState = uiDataState,
-                            columns = columns,
                             rows = rows,
                             pageIndex = it,
                             state = state,
@@ -167,17 +166,16 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
 @Composable
 private fun AppGridUi(
     uiState: HomeUiState.HomeData,
-    columns: Int,
     rows: Int,
     pageIndex: Int,
     state: ReorderableLazyGridState,
-    onEvent: (HomeScreenEvent) -> Unit
+    onEvent: (HomeEvent) -> Unit
 ) {
     val density = LocalDensity.current
     var itemHeight by remember { mutableStateOf(0.dp) }
 
     LazyVerticalGrid(
-        columns = GridCells.Fixed(columns),
+        columns = GridCells.Fixed(COLUMNS),
         contentPadding = PaddingValues(horizontal = 16.dp),
         state = state.gridState,
         modifier = Modifier
@@ -206,7 +204,7 @@ private fun LazyGridScope.homeScreenItems(
     itemHeight: Dp,
     isMovingUi: Boolean,
     pageIndex: Int,
-    onEvent: (HomeScreenEvent) -> Unit,
+    onEvent: (HomeEvent) -> Unit,
 ) {
     itemsIndexed(
         items = apps,

@@ -4,13 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.customlauncher.core.data.AppRepository
 import com.example.customlauncher.core.model.App
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnCurrentPageChange
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragMove
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStart
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnDragStop
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnInit
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnNameEditConfirm
-import com.example.customlauncher.feature.home.HomeScreenEvent.UpdateMaxAppsPerPage
+import com.example.customlauncher.feature.home.HomeEvent.OnCurrentPageChange
+import com.example.customlauncher.feature.home.HomeEvent.OnDragMove
+import com.example.customlauncher.feature.home.HomeEvent.OnDragStart
+import com.example.customlauncher.feature.home.HomeEvent.OnDragStop
+import com.example.customlauncher.feature.home.HomeEvent.OnInit
+import com.example.customlauncher.feature.home.HomeEvent.OnNameEditConfirm
 import com.example.customlauncher.feature.home.HomeUiState.HomeData
 import com.example.customlauncher.feature.home.HomeUiState.Loading
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -71,7 +70,7 @@ class HomeViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000)
     )
 
-    fun onEvent(event: HomeScreenEvent) {
+    fun onEvent(event: HomeEvent) {
         when (event) {
             is OnInit -> setupInitialState()
 
@@ -103,7 +102,7 @@ class HomeViewModel @Inject constructor(
 
             is OnCurrentPageChange -> _currentPage.value = event.value
 
-            is HomeScreenEvent.OnSelectChange -> {
+            is HomeEvent.OnSelectChange -> {
                 if (!event.value) {
                     startCollect()
                 } else {
@@ -114,13 +113,13 @@ class HomeViewModel @Inject constructor(
             }
 
 
-            is HomeScreenEvent.OnAppCheckChange -> editAppChecked(
+            is HomeEvent.OnAppCheckChange -> editAppChecked(
                 isChecked = event.isChecked,
                 pageIndex = event.pageIndex,
                 index = event.index,
             )
 
-            is HomeScreenEvent.OnAppMoveConfirm -> viewModelScope.launch {
+            is HomeEvent.OnAppMoveConfirm -> viewModelScope.launch {
                 val moveApps = _appPages.value.flatMap { list ->
                     list.filter { it.isChecked }
                 }
@@ -129,7 +128,9 @@ class HomeViewModel @Inject constructor(
                 _isSelecting.value = false
             }
 
-            is UpdateMaxAppsPerPage -> appRepo.
+            is HomeEvent.UpdateMaxAppsPerPage -> viewModelScope.launch {
+                appRepo.updateMaxAppsPerPage(event.count)
+            }
         }
     }
 

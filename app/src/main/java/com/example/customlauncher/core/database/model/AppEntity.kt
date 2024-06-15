@@ -14,7 +14,6 @@ data class AppEntity(
     val version: String,
     val index: Int,
     val page: Int,
-    val usageMillis: Long = 0,
     val notificationCount: Int = 0,
 
     @PrimaryKey
@@ -36,8 +35,8 @@ fun AppEntity.asExternalModel(
     )
 }
 
-fun AppEntity.isInstalledAndUpToDate(map: Map<String, AppEntity>): Boolean {
-    val installed = map[packageName] ?: return false
+fun AppEntity.isInstalledAndUpToDate(dbApps: Map<String, AppEntity>): Boolean {
+    val installed = dbApps[packageName] ?: return false
     return installed.version == version
 }
 

@@ -25,12 +25,7 @@ object DatabaseModule {
     ).build()
 
     @Provides
-    fun providesApplicationDao(
+    fun providesAppDao(
         database: RoomClDatabase
     ) = database.applicationDao()
-
-    @Provides
-    fun providesCompanyApplicationDao(
-        database: RoomClDatabase
-    ) = database.companyApplicationDao()
 }

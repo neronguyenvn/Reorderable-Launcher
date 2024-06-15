@@ -17,4 +17,6 @@ interface AppRepository {
     suspend fun moveInPage(toIndex: Int, app: App)
 
     suspend fun moveToPage(toPage: Int, apps: List<App>)
+
+    suspend fun updateMaxAppsPerPage(count: Int)
 }

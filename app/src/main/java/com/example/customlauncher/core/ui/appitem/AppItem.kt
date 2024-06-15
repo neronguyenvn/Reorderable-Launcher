@@ -53,9 +53,9 @@ import com.example.customlauncher.core.model.TooltipMenu
 import com.example.customlauncher.core.model.launch
 import com.example.customlauncher.core.model.showInfo
 import com.example.customlauncher.core.model.uninstall
-import com.example.customlauncher.feature.home.HomeScreenEvent
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnAppCheckChange
-import com.example.customlauncher.feature.home.HomeScreenEvent.OnNameEditConfirm
+import com.example.customlauncher.feature.home.HomeEvent
+import com.example.customlauncher.feature.home.HomeEvent.OnAppCheckChange
+import com.example.customlauncher.feature.home.HomeEvent.OnNameEditConfirm
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,7 +68,7 @@ fun AppItem(
     pageIndex: Int,
     index: Int,
     modifier: Modifier = Modifier,
-    onEvent: (HomeScreenEvent) -> Unit,
+    onEvent: (HomeEvent) -> Unit,
 ) {
     val tooltipState = rememberTooltipState()
     var showEditNameDialog by remember { mutableStateOf(false) }
@@ -106,7 +106,7 @@ fun AppItem(
                     showEditNameDialog = { showEditNameDialog = true },
                     changeToMovingUi = {
                         onEvent(
-                            HomeScreenEvent.OnSelectChange(
+                            HomeEvent.OnSelectChange(
                                 true,
                                 pageIndex,
                                 index
