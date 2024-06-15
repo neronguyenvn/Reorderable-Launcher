@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
@@ -140,7 +141,11 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                     }
                     HorizontalPager(
                         state = pagerState,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        flingBehavior = PagerDefaults.flingBehavior(
+                            state = pagerState,
+                            snapPositionalThreshold = 0.2f
+                        )
                     ) {
                         AppGridUi(
                             uiState = uiDataState,
