@@ -151,15 +151,15 @@ class OfflineFirstAppRepository @Inject constructor(
     }
 
     private fun calculateIndexAndUpdateTempMap(
-        pagedApps: MutableMap<Int, MutableList<String>>,
+        tempMap: MutableMap<Int, MutableList<String>>,
         packageName: String,
         page: Int,
     ): Int {
-        if (pagedApps[page].isNullOrEmpty()) {
-            return 0
+        if (tempMap.containsKey(page)) {
+            tempMap[page]?.add(packageName)
+        } else {
+            tempMap[page] = mutableListOf(packageName)
         }
-
-        pagedApps[page]!!.add(packageName)
-        return pagedApps[page]!!.lastIndex
+        return tempMap[page]!!.lastIndex
     }
 }
