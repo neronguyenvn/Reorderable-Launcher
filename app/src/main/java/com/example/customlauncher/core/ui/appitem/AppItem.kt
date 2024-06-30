@@ -1,9 +1,9 @@
 package com.example.customlauncher.core.ui.appitem
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,69 +46,98 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.customlauncher.core.designsystem.util.conditional
 import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.model.TooltipMenu
+import com.example.customlauncher.core.model.launch
 import com.example.customlauncher.core.model.showInfo
 import com.example.customlauncher.core.model.uninstall
 import com.example.customlauncher.feature.home.HomeEvent
 import com.example.customlauncher.feature.home.HomeEvent.OnAppCheckChange
+import com.example.customlauncher.feature.home.HomeEvent.OnDragStart
+import com.example.customlauncher.feature.home.HomeEvent.OnDragStop
 import com.example.customlauncher.feature.home.HomeEvent.OnNameEditConfirm
+import kotlinx.coroutines.launch
+import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableLazyGridState
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppItem(
     app: App,
-    reorderableState: ReorderableLazyGridState,
-    isDragging: Boolean,
     isUiMoving: Boolean,
     pageIndex: Int,
     index: Int,
+    reorderableScope: ReorderableCollectionItemScope,
+    reorderableState: ReorderableLazyGridState,
     modifier: Modifier = Modifier,
     onEvent: (HomeEvent) -> Unit,
+    showTooltip: Boolean,
 ) {
     val tooltipState = rememberTooltipState()
     var showEditNameDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(isDragging) {
-        if (isDragging) {
+    LaunchedEffect(showTooltip) {
+        if (!showTooltip) {
             tooltipState.dismiss()
         }
     }
 
-    Box(modifier) {
-        TooltipBox(
-            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-            state = tooltipState,
-            enableUserInput = false,
-            tooltip = {
-                TooltipBoxUi(
-                    app = app,
-                    showEditNameDialog = { showEditNameDialog = true },
-                    changeToMovingUi = {
-                        onEvent(
-                            HomeEvent.OnSelectChange(
-                                true,
-                                pageIndex,
-                                index
-                            )
-                        )
-                    },
-                    cancelSelected = { tooltipState.dismiss() }
-                )
-            }) {
-            AppItemUi(
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        state = tooltipState,
+        enableUserInput = false,
+        tooltip = {
+            TooltipBoxUi(
                 app = app,
-                isUiMoving = isUiMoving,
-                /*  modifier = Modifier.combinedClickable(
-                      onClick = { app.launch(context) },
-                      onLongClick = { coroutineScope.launch { tooltipState.show() } }
-                  )*/
-            ) {
-                onEvent(OnAppCheckChange(it, pageIndex, index))
+                showEditNameDialog = { showEditNameDialog = true },
+                changeToMovingUi = {
+                    onEvent(
+                        HomeEvent.OnSelectChange(
+                            true,
+                            pageIndex,
+                            index
+                        )
+                    )
+                },
+                cancelSelected = { tooltipState.dismiss() }
+            )
+        }) {
+        AppItemUi(
+            app = app,
+            isUiMoving = isUiMoving,
+            modifier = with(reorderableScope) {
+                modifier
+                    .conditional(isUiMoving,
+                        ifTrue = {
+                            clickable {
+                                onEvent(
+                                    OnAppCheckChange(
+                                        !app.isChecked,
+                                        pageIndex,
+                                        index
+                                    )
+                                )
+                            }
+                        },
+                        ifFalse = {
+                            pointerInput(reorderableState) {
+                                detectTapGestures(
+                                    onTap = { app.launch(context) },
+                                    onLongPress = { coroutineScope.launch { tooltipState.show() } },
+                                )
+                            }
+                        }
+                    )
+                    .longPressDraggableHandle(
+                        onDragStarted = { onEvent(OnDragStart) },
+                        onDragStopped = { onEvent(OnDragStop) }
+                    )
             }
+        ) {
+            onEvent(OnAppCheckChange(it, pageIndex, index))
         }
     }
 

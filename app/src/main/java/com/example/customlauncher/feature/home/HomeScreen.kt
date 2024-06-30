@@ -3,7 +3,6 @@ package com.example.customlauncher.feature.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -42,16 +41,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.customlauncher.core.designsystem.util.conditional
 import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.ui.appitem.AppItem
 import com.example.customlauncher.core.ui.pageslider.PageIndicator
-import com.example.customlauncher.feature.home.HomeEvent.OnAppCheckChange
 import com.example.customlauncher.feature.home.HomeEvent.OnAppMoveConfirm
 import com.example.customlauncher.feature.home.HomeEvent.OnCurrentPageChange
 import com.example.customlauncher.feature.home.HomeEvent.OnDragMove
-import com.example.customlauncher.feature.home.HomeEvent.OnDragStart
-import com.example.customlauncher.feature.home.HomeEvent.OnDragStop
 import com.example.customlauncher.feature.home.HomeEvent.OnInit
 import com.example.customlauncher.feature.home.HomeEvent.OnSelectChange
 import com.example.customlauncher.feature.home.HomeEvent.UpdateMaxAppsPerPage
@@ -108,6 +103,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
     }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
     val lazyGridState = rememberLazyGridState()
     val reorderableLazyGridState = rememberReorderableLazyGridState(
         lazyGridState
@@ -157,6 +153,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                             pageIndex = it,
                             state = lazyGridState,
                             reorderableState = reorderableLazyGridState,
+                            showTooltip = uiDataState.shouldShowTooltipOnLongPress,
                             onEvent = viewModel::onEvent
                         )
                     }
@@ -180,6 +177,7 @@ private fun AppGridUi(
     pageIndex: Int,
     state: LazyGridState,
     reorderableState: ReorderableLazyGridState,
+    showTooltip: Boolean,
     onEvent: (HomeEvent) -> Unit
 ) {
     val density = LocalDensity.current
@@ -203,6 +201,7 @@ private fun AppGridUi(
             itemHeight = itemHeight,
             isMovingUi = uiState.isSelecting,
             pageIndex = pageIndex,
+            showTooltip = showTooltip,
             onEvent = onEvent
         )
     }
@@ -215,6 +214,7 @@ private fun LazyGridScope.homeScreenItems(
     itemHeight: Dp,
     isMovingUi: Boolean,
     pageIndex: Int,
+    showTooltip: Boolean,
     onEvent: (HomeEvent) -> Unit,
 ) {
     itemsIndexed(
@@ -225,27 +225,16 @@ private fun LazyGridScope.homeScreenItems(
             state = reorderableState,
             key = app.packageName,
             modifier = Modifier.height(itemHeight)
-        ) { isDragging ->
+        ) { _ ->
             AppItem(
                 app = app,
-                reorderableState = reorderableState,
-                isDragging = isDragging,
                 isUiMoving = isMovingUi,
                 pageIndex = pageIndex,
                 index = index,
+                reorderableScope = this,
+                reorderableState = reorderableState,
+                showTooltip = showTooltip,
                 onEvent = onEvent,
-                modifier = Modifier.conditional(
-                    isMovingUi,
-                    ifFalse = {
-                        longPressDraggableHandle(
-                            onDragStarted = { onEvent(OnDragStart) },
-                            onDragStopped = { onEvent(OnDragStop) }
-                        )
-                    },
-                    ifTrue = {
-                        clickable { onEvent(OnAppCheckChange(!app.isChecked, pageIndex, index)) }
-                    }
-                )
             )
         }
     }

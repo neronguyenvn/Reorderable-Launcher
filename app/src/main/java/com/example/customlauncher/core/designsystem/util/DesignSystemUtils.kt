@@ -4,13 +4,10 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 
-@Composable
+/*@Composable
 fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier {
     return this then clickable(
         indication = null,
@@ -18,7 +15,7 @@ fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier {
     ) {
         onClick()
     }
-}
+}*/
 
 fun Drawable.asBitmap(): Bitmap {
     if (this is BitmapDrawable) {
@@ -34,16 +31,12 @@ fun Drawable.asBitmap(): Bitmap {
 }
 
 @Composable
-fun Modifier.conditional(
+inline fun Modifier.conditional(
     condition: Boolean,
     ifTrue: Modifier.() -> Modifier,
-    ifFalse: @Composable (Modifier.() -> Modifier)? = null
-): Modifier {
-    return if (condition) {
-        then(ifTrue(Modifier))
-    } else if (ifFalse != null) {
-        then(ifFalse(Modifier))
-    } else {
-        this
-    }
+    ifFalse: Modifier.() -> Modifier = { this },
+): Modifier = if (condition) {
+    then(ifTrue(this))
+} else {
+    then(ifFalse(this))
 }

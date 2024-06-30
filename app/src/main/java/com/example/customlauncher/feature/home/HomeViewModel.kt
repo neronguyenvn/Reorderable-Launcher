@@ -37,7 +37,8 @@ sealed interface HomeUiState {
 
     data class HomeData(
         val appPages: List<List<App>> = emptyList(),
-        val isSelecting: Boolean = false
+        val isSelecting: Boolean = false,
+        val shouldShowTooltipOnLongPress: Boolean = true
     ) : HomeUiState
 }
 
@@ -54,6 +55,7 @@ class HomeViewModel @Inject constructor(
 
     private val _isLoading = MutableStateFlow(true)
     private val _isSelecting = MutableStateFlow(false)
+    private val _shouldShowTooltipOnLongPress = MutableStateFlow(true)
 
     private var collectAppsJob: Job? = null
     private var updateAppPositionJob: Job? = null
@@ -65,11 +67,13 @@ class HomeViewModel @Inject constructor(
         _appPages,
         _isLoading,
         _isSelecting,
-    ) { pages, loading, selecting ->
+        _shouldShowTooltipOnLongPress
+    ) { pages, loading, selecting, should ->
         if (loading) return@combine Loading
         HomeData(
             appPages = pages,
-            isSelecting = selecting
+            isSelecting = selecting,
+            shouldShowTooltipOnLongPress = should
         )
     }.stateIn(
         scope = viewModelScope,
@@ -96,6 +100,8 @@ class HomeViewModel @Inject constructor(
                     }
                 }
                 _appPages.value = newAppPages
+
+                _shouldShowTooltipOnLongPress.value = false
             }
 
             is OnDragStart -> cancelAllJobs()
@@ -123,7 +129,7 @@ class HomeViewModel @Inject constructor(
                     }
                 }
 
-
+                _shouldShowTooltipOnLongPress.value = true
             }
 
             is OnCurrentPageChange -> _currentPage.value = event.value
@@ -167,6 +173,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun startCollect() {
+        collectAppsJob?.cancel()
         collectAppsJob = appRepo.getAppsStream()
             .onEach { _appPages.value = it }
             .launchIn(viewModelScope)
