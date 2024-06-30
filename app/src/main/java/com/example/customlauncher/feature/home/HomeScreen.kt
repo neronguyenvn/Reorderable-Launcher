@@ -3,6 +3,7 @@ package com.example.customlauncher.feature.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,8 +14,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
@@ -39,14 +42,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ItemPosition
-import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableItem
-import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
-import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.rememberReorderableLazyGridState
-import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.reorderable
+import com.example.customlauncher.core.designsystem.util.conditional
 import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.ui.appitem.AppItem
 import com.example.customlauncher.core.ui.pageslider.PageIndicator
+import com.example.customlauncher.feature.home.HomeEvent.OnAppCheckChange
 import com.example.customlauncher.feature.home.HomeEvent.OnAppMoveConfirm
 import com.example.customlauncher.feature.home.HomeEvent.OnCurrentPageChange
 import com.example.customlauncher.feature.home.HomeEvent.OnDragMove
@@ -55,6 +55,9 @@ import com.example.customlauncher.feature.home.HomeEvent.OnDragStop
 import com.example.customlauncher.feature.home.HomeEvent.OnInit
 import com.example.customlauncher.feature.home.HomeEvent.OnSelectChange
 import com.example.customlauncher.feature.home.HomeEvent.UpdateMaxAppsPerPage
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.ReorderableLazyGridState
+import sh.calvin.reorderable.rememberReorderableLazyGridState
 import kotlin.math.roundToInt
 
 sealed interface HomeEvent {
@@ -66,11 +69,11 @@ sealed interface HomeEvent {
         val app: App
     ) : HomeEvent
 
-    data class OnDragMove(val from: ItemPosition, val to: ItemPosition) : HomeEvent
+    data class OnDragMove(val from: Int, val to: Int) : HomeEvent
 
     data object OnDragStart : HomeEvent
 
-    data class OnDragStop(val from: Int, val to: Int) : HomeEvent
+    data object OnDragStop : HomeEvent
 
     data class OnCurrentPageChange(val value: Int) : HomeEvent
 
@@ -105,11 +108,12 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
     }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val state = rememberReorderableLazyGridState(
-        onMove = { from, to -> viewModel.onEvent(OnDragMove(from, to)) },
-        onDragStart = { _, _, _ -> viewModel.onEvent(OnDragStart) },
-        onDragEnd = { from, to -> viewModel.onEvent(OnDragStop(from, to)) }
-    )
+    val lazyGridState = rememberLazyGridState()
+    val reorderableLazyGridState = rememberReorderableLazyGridState(
+        lazyGridState
+    ) { from, to ->
+        viewModel.onEvent(OnDragMove(from.index, to.index))
+    }
 
     Scaffold(containerColor = Color.LightGray) { paddings ->
         val paddingModifier = Modifier.padding(paddings)
@@ -151,7 +155,8 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                             uiState = uiDataState,
                             rows = rows,
                             pageIndex = it,
-                            state = state,
+                            state = lazyGridState,
+                            reorderableState = reorderableLazyGridState,
                             onEvent = viewModel::onEvent
                         )
                     }
@@ -173,7 +178,8 @@ private fun AppGridUi(
     uiState: HomeUiState.HomeData,
     rows: Int,
     pageIndex: Int,
-    state: ReorderableLazyGridState,
+    state: LazyGridState,
+    reorderableState: ReorderableLazyGridState,
     onEvent: (HomeEvent) -> Unit
 ) {
     val density = LocalDensity.current
@@ -182,7 +188,7 @@ private fun AppGridUi(
     LazyVerticalGrid(
         columns = GridCells.Fixed(COLUMNS),
         contentPadding = PaddingValues(horizontal = 16.dp),
-        state = state.gridState,
+        state = state,
         modifier = Modifier
             .fillMaxSize()
             .onGloballyPositioned {
@@ -190,11 +196,10 @@ private fun AppGridUi(
                     it.size.height.toDp() / rows
                 }
             }
-            .reorderable(state)
     ) {
         homeScreenItems(
             apps = uiState.appPages[pageIndex],
-            gridState = state,
+            reorderableState = reorderableState,
             itemHeight = itemHeight,
             isMovingUi = uiState.isSelecting,
             pageIndex = pageIndex,
@@ -203,9 +208,10 @@ private fun AppGridUi(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 private fun LazyGridScope.homeScreenItems(
     apps: List<App>,
-    gridState: ReorderableLazyGridState,
+    reorderableState: ReorderableLazyGridState,
     itemHeight: Dp,
     isMovingUi: Boolean,
     pageIndex: Int,
@@ -213,21 +219,33 @@ private fun LazyGridScope.homeScreenItems(
 ) {
     itemsIndexed(
         items = apps,
-        contentType = { _: Int, item: App -> item.packageName }
+        key = { _, item -> item.packageName }
     ) { index, app ->
         ReorderableItem(
-            reorderableState = gridState,
+            state = reorderableState,
             key = app.packageName,
             modifier = Modifier.height(itemHeight)
         ) { isDragging ->
             AppItem(
                 app = app,
-                gridState = gridState,
+                reorderableState = reorderableState,
                 isDragging = isDragging,
                 isUiMoving = isMovingUi,
                 pageIndex = pageIndex,
                 index = index,
-                onEvent = onEvent
+                onEvent = onEvent,
+                modifier = Modifier.conditional(
+                    isMovingUi,
+                    ifFalse = {
+                        longPressDraggableHandle(
+                            onDragStarted = { onEvent(OnDragStart) },
+                            onDragStopped = { onEvent(OnDragStop) }
+                        )
+                    },
+                    ifTrue = {
+                        clickable { onEvent(OnAppCheckChange(!app.isChecked, pageIndex, index)) }
+                    }
+                )
             )
         }
     }

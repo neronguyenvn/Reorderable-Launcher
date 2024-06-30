@@ -1,7 +1,7 @@
 package com.example.customlauncher.core.ui.appitem
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,24 +45,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.ReorderableLazyGridState
-import com.example.customlauncher.core.designsystem.component.reorderablelazygrid.detectPressOrDragAndReorder
-import com.example.customlauncher.core.designsystem.util.conditional
 import com.example.customlauncher.core.model.App
 import com.example.customlauncher.core.model.TooltipMenu
-import com.example.customlauncher.core.model.launch
 import com.example.customlauncher.core.model.showInfo
 import com.example.customlauncher.core.model.uninstall
 import com.example.customlauncher.feature.home.HomeEvent
 import com.example.customlauncher.feature.home.HomeEvent.OnAppCheckChange
 import com.example.customlauncher.feature.home.HomeEvent.OnNameEditConfirm
-import kotlinx.coroutines.launch
+import sh.calvin.reorderable.ReorderableLazyGridState
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun AppItem(
     app: App,
-    gridState: ReorderableLazyGridState,
+    reorderableState: ReorderableLazyGridState,
     isDragging: Boolean,
     isUiMoving: Boolean,
     pageIndex: Int,
@@ -81,21 +77,7 @@ fun AppItem(
         }
     }
 
-    Box(
-        modifier = modifier.conditional(
-            isUiMoving,
-            ifFalse = {
-                detectPressOrDragAndReorder(
-                    state = gridState,
-                    onClick = { app.launch(context) },
-                    onLongClick = { coroutineScope.launch { tooltipState.show() } }
-                )
-            },
-            ifTrue = {
-                clickable { onEvent(OnAppCheckChange(!app.isChecked, pageIndex, index)) }
-            }
-        )
-    ) {
+    Box(modifier) {
         TooltipBox(
             positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
             state = tooltipState,
@@ -119,6 +101,10 @@ fun AppItem(
             AppItemUi(
                 app = app,
                 isUiMoving = isUiMoving,
+                /*  modifier = Modifier.combinedClickable(
+                      onClick = { app.launch(context) },
+                      onLongClick = { coroutineScope.launch { tooltipState.show() } }
+                  )*/
             ) {
                 onEvent(OnAppCheckChange(it, pageIndex, index))
             }
@@ -139,6 +125,7 @@ fun AppItem(
 private fun AppItemUi(
     app: App,
     isUiMoving: Boolean,
+    modifier: Modifier = Modifier,
     onItemSelect: (Boolean) -> Unit
 ) {
     val imageRequest = ImageRequest.Builder(LocalContext.current)
@@ -149,7 +136,7 @@ private fun AppItemUi(
     Column(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize()
     ) {
         BadgedBox(
             badge = {

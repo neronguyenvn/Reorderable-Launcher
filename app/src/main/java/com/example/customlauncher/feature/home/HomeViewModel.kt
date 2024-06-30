@@ -4,12 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.customlauncher.core.data.AppRepository
 import com.example.customlauncher.core.model.App
+import com.example.customlauncher.feature.home.HomeEvent.OnAppCheckChange
+import com.example.customlauncher.feature.home.HomeEvent.OnAppMoveConfirm
 import com.example.customlauncher.feature.home.HomeEvent.OnCurrentPageChange
 import com.example.customlauncher.feature.home.HomeEvent.OnDragMove
 import com.example.customlauncher.feature.home.HomeEvent.OnDragStart
 import com.example.customlauncher.feature.home.HomeEvent.OnDragStop
 import com.example.customlauncher.feature.home.HomeEvent.OnInit
 import com.example.customlauncher.feature.home.HomeEvent.OnNameEditConfirm
+import com.example.customlauncher.feature.home.HomeEvent.OnSelectChange
+import com.example.customlauncher.feature.home.HomeEvent.UpdateMaxAppsPerPage
 import com.example.customlauncher.feature.home.HomeUiState.HomeData
 import com.example.customlauncher.feature.home.HomeUiState.Loading
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -54,6 +58,9 @@ class HomeViewModel @Inject constructor(
     private var collectAppsJob: Job? = null
     private var updateAppPositionJob: Job? = null
 
+    private var tempFrom: Int? = null
+    private var tempTo: Int? = null
+
     val uiState = combine(
         _appPages,
         _isLoading,
@@ -80,9 +87,12 @@ class HomeViewModel @Inject constructor(
 
             is OnDragMove -> viewModelScope.launch {
                 val currentPage = getCurrentPage()
+                tempFrom = event.from
+                tempTo = event.to
+
                 val newAppPages = appPages.toMutableList().apply {
                     this[currentPage] = this[currentPage].toMutableList().apply {
-                        add(event.to.index, removeAt(event.from.index))
+                        add(event.to, removeAt(event.from))
                     }
                 }
                 _appPages.value = newAppPages
@@ -90,19 +100,35 @@ class HomeViewModel @Inject constructor(
 
             is OnDragStart -> cancelAllJobs()
 
-            is OnDragStop -> updateAppPositionJob = viewModelScope.launch {
-                delay(ITEM_POSITION_SET_DELAY)
-                appPages[getCurrentPage()].let { list ->
-                    for (i in minOf(event.from, event.to)..maxOf(event.from, event.to)) {
-                        appRepo.moveInPage(i, list[i])
-                    }
-                    startCollect()
+            is OnDragStop -> {
+                if (tempFrom == null || tempTo == null) {
+                    return
                 }
+
+                updateAppPositionJob?.cancel()
+                updateAppPositionJob = viewModelScope.launch {
+                    delay(ITEM_POSITION_SET_DELAY)
+
+                    val start = minOf(tempFrom!!, tempTo!!)
+                    val end = maxOf(tempFrom!!, tempTo!!)
+
+                    tempFrom = null
+                    tempTo = null
+
+                    appPages[getCurrentPage()].let { list ->
+                        for (i in start..end) {
+                            appRepo.moveInPage(i, list[i])
+                        }
+                        startCollect()
+                    }
+                }
+
+
             }
 
             is OnCurrentPageChange -> _currentPage.value = event.value
 
-            is HomeEvent.OnSelectChange -> {
+            is OnSelectChange -> {
                 if (!event.value) {
                     startCollect()
                 } else {
@@ -113,13 +139,13 @@ class HomeViewModel @Inject constructor(
             }
 
 
-            is HomeEvent.OnAppCheckChange -> editAppChecked(
+            is OnAppCheckChange -> editAppChecked(
                 isChecked = event.isChecked,
                 pageIndex = event.pageIndex,
                 index = event.index,
             )
 
-            is HomeEvent.OnAppMoveConfirm -> viewModelScope.launch {
+            is OnAppMoveConfirm -> viewModelScope.launch {
                 val moveApps = _appPages.value.flatMap { list ->
                     list.filter { it.isChecked }
                 }
@@ -128,7 +154,7 @@ class HomeViewModel @Inject constructor(
                 _isSelecting.value = false
             }
 
-            is HomeEvent.UpdateMaxAppsPerPage -> viewModelScope.launch {
+            is UpdateMaxAppsPerPage -> viewModelScope.launch {
                 appRepo.updateMaxAppsPerPage(event.count)
             }
         }
