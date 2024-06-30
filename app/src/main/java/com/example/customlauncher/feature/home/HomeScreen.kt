@@ -22,6 +22,7 @@ import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -111,7 +111,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         viewModel.onEvent(OnDragMove(from.index, to.index))
     }
 
-    Scaffold(containerColor = Color.LightGray) { paddings ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.background) { paddings ->
         val paddingModifier = Modifier.padding(paddings)
         when (uiState) {
             is HomeUiState.Loading -> LoadingEffect(paddingModifier)

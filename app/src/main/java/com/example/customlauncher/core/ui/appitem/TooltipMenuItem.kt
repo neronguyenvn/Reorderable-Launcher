@@ -7,10 +7,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.customlauncher.core.model.TooltipMenu
 
@@ -22,10 +22,15 @@ fun TooltipMenuItem(tooltipMenu: TooltipMenu, action: () -> Unit) {
             .clickable { action() }
             .padding(16.dp)
     ) {
-        Icon(imageVector = tooltipMenu.icon, contentDescription = "", tint = Color.DarkGray)
+        Icon(
+            imageVector = tooltipMenu.icon,
+            tint = MaterialTheme.colorScheme.onSecondary,
+            contentDescription = "",
+        )
         Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = tooltipMenu.name,
+            color = MaterialTheme.colorScheme.onSecondary
         )
     }
 }

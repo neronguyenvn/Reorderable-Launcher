@@ -37,7 +37,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -190,7 +189,7 @@ private fun AppItemUi(
         }
         Text(
             text = app.name, style = MaterialTheme.typography.labelMedium,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
             overflow = TextOverflow.Ellipsis,
             maxLines = 1
@@ -210,7 +209,7 @@ private fun TooltipBoxUi(
         modifier = Modifier
             .fillMaxWidth(0.5f)
             .clip(RoundedCornerShape(15))
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.secondary)
     ) {
         TooltipMenuItem(tooltipMenu = TooltipMenu.Edit) {
             showEditNameDialog()
