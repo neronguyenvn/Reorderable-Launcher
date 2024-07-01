@@ -14,7 +14,6 @@ data class AppEntity(
     val version: String,
     val index: Int,
     val page: Int,
-    val notificationCount: Int = 0,
 
     @PrimaryKey
     val packageName: String
@@ -30,7 +29,6 @@ fun AppEntity.asExternalModel(
         packageName = packageName,
         version = version,
         canUninstall = canUninstall,
-        notificationCount = notificationCount,
         index = index
     )
 }

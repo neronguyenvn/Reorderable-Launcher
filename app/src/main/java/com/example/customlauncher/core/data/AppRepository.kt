@@ -1,6 +1,5 @@
 package com.example.customlauncher.core.data
 
-import android.service.notification.StatusBarNotification
 import com.example.customlauncher.core.model.App
 import kotlinx.coroutines.flow.Flow
 
@@ -11,8 +10,6 @@ interface AppRepository {
     suspend fun refreshApps()
 
     suspend fun editAppName(newName: String, app: App)
-
-    suspend fun handleNotifications(notifications: List<StatusBarNotification>)
 
     suspend fun moveInPage(toIndex: Int, app: App)
 

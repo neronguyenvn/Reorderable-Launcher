@@ -11,7 +11,6 @@ data class App(
     val version: String,
     val icon: Bitmap,
     val canUninstall: Boolean,
-    val notificationCount: Int,
     val packageName: String,
     val index: Int,
     val isChecked: Boolean = false,

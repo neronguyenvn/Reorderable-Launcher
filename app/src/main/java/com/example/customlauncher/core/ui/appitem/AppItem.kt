@@ -174,10 +174,6 @@ private fun AppItemUi(
                         checked = app.isChecked,
                         onCheckedChange = { onItemSelect(it) }
                     )
-
-                    app.notificationCount != 0 -> Badge(modifier = Modifier.size(20.dp)) {
-                        Text(text = (app.notificationCount).toString())
-                    }
                 }
             },
         ) {

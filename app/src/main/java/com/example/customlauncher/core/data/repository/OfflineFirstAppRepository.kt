@@ -1,7 +1,6 @@
 package com.example.customlauncher.core.data.repository
 
 import android.content.Context
-import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.example.customlauncher.core.data.AppRepository
 import com.example.customlauncher.core.data.util.appInfoMap
@@ -85,16 +84,6 @@ class OfflineFirstAppRepository @Inject constructor(
 
     override suspend fun editAppName(newName: String, app: App) {
         appDao.updateName(newName, app.packageName)
-    }
-
-    private val handleNotificationsMutex = Mutex()
-    override suspend fun handleNotifications(
-        notifications: List<StatusBarNotification>
-    ) = handleNotificationsMutex.withLock {
-        appDao.unsetAllNotificationCount()
-        notifications.groupingBy { it.packageName }.eachCount().forEach {
-            appDao.updateNotificationCount(it.value, it.key)
-        }
     }
 
     override suspend fun moveInPage(toIndex: Int, app: App) {
