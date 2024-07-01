@@ -91,8 +91,8 @@ class HomeViewModel @Inject constructor(
 
             is OnDragMove -> viewModelScope.launch {
                 val currentPage = getCurrentPage()
-                tempFrom = event.from
-                tempTo = event.to
+                tempFrom = tempFrom?.let { minOf(event.from, it) } ?: event.from
+                tempTo = tempTo?.let { maxOf(event.to, it) } ?: event.to
 
                 val newAppPages = appPages.toMutableList().apply {
                     this[currentPage] = this[currentPage].toMutableList().apply {
