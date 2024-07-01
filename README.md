@@ -46,6 +46,4 @@ to preload the pager to preload the main page as well as the adjacent pages.
 
 ## 🎥 Demo
 
-https://github.com/neronguyenvn/custom-launcher/assets/50225603/48b22102-a7fb-4b87-83d6-896df2443f46
-
-https://github.com/neronguyenvn/custom-launcher/assets/50225603/5650c132-2bed-45d3-b845-68b31b8b9db6
+[screen-20240701-234344.webm](https://github.com/neronguyenvn/custom-launcher/assets/50225603/9f62c7dd-2749-46d7-bed0-b7659cafa333)
