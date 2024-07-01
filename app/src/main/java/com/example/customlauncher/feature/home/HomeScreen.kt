@@ -135,6 +135,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.weight(1f),
+                        beyondBoundsPageCount = 1,
                         flingBehavior = PagerDefaults.flingBehavior(
                             state = pagerState,
                             snapPositionalThreshold = 0.2f
