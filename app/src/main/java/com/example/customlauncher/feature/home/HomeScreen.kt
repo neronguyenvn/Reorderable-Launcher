@@ -104,13 +104,6 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val lazyGridState = rememberLazyGridState()
-    val reorderableLazyGridState = rememberReorderableLazyGridState(
-        lazyGridState
-    ) { from, to ->
-        viewModel.onEvent(OnDragMove(from.index, to.index))
-    }
-
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { paddings ->
         val paddingModifier = Modifier.padding(paddings)
         when (uiState) {
@@ -147,6 +140,13 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                             snapPositionalThreshold = 0.2f
                         )
                     ) {
+                        val lazyGridState = rememberLazyGridState()
+                        val reorderableLazyGridState = rememberReorderableLazyGridState(
+                            lazyGridState
+                        ) { from, to ->
+                            viewModel.onEvent(OnDragMove(from.index, to.index))
+                        }
+
                         AppGridUi(
                             uiState = uiDataState,
                             rows = rows,

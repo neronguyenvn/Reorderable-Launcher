@@ -11,10 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -109,6 +107,7 @@ fun AppItem(
             isUiMoving = isUiMoving,
             modifier = with(reorderableScope) {
                 modifier
+                    .fillMaxSize()
                     .conditional(isUiMoving,
                         ifTrue = {
                             clickable {
@@ -165,7 +164,7 @@ private fun AppItemUi(
     Column(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.fillMaxSize()
+        modifier = modifier
     ) {
         BadgedBox(
             badge = {
