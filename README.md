@@ -35,11 +35,7 @@ to preload the pager to preload the main page as well as the adjacent pages.
 - **Dynamic Grid Layout**: Automatically arranges apps in a grid layout, allowing for easy
   drag-and-drop reordering within and across pages.
 
-- **App Management**: Efficiently handles the addition and removal of apps, as well as
-  notifications.
-
-- **Persistent Storage**: Stores app position indexes and page indexes in Room DB, enabling smooth
-  transitions and movements of apps between pages.
+- **Persistent Storage**: Stores app position indexes and page indexes in Room DB.
 
 - **Reactive Updates**: Reflects real-time changes in app positions and updates both the data and
   presentation layers asynchronously.
