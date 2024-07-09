@@ -47,6 +47,7 @@ sealed interface HomeUiState {
 class HomeViewModel @Inject constructor(
     private val appRepo: AppRepository,
 ) : ViewModel() {
+
     private val _appPages = MutableStateFlow<List<List<App>>>(emptyList())
     private val appPages get() = _appPages.value
 
@@ -83,6 +84,7 @@ class HomeViewModel @Inject constructor(
 
     fun onEvent(event: HomeEvent) {
         when (event) {
+
             is OnInit -> setupInitialState()
 
             is OnNameEditConfirm -> viewModelScope.launch {
@@ -108,6 +110,7 @@ class HomeViewModel @Inject constructor(
 
             is OnDragStop -> {
                 if (tempFrom == null || tempTo == null) {
+                    subscribeAppsStream()
                     return
                 }
 
@@ -125,8 +128,9 @@ class HomeViewModel @Inject constructor(
                         for (i in start..end) {
                             appRepo.moveInPage(i, list[i])
                         }
-                        startCollect()
                     }
+
+                    subscribeAppsStream()
                 }
 
                 _shouldShowTooltipOnLongPress.value = true
@@ -135,10 +139,7 @@ class HomeViewModel @Inject constructor(
             is OnCurrentPageChange -> _currentPage.value = event.value
 
             is OnSelectChange -> {
-                if (!event.value) {
-                    startCollect()
-                } else {
-                    cancelAllJobs()
+                if (event.value) {
                     editAppChecked(true, event.pageIndex!!, event.index!!, true)
                 }
                 _isSelecting.value = event.value
@@ -152,11 +153,13 @@ class HomeViewModel @Inject constructor(
             )
 
             is OnAppMoveConfirm -> viewModelScope.launch {
+                subscribeAppsStream()
+
                 val moveApps = _appPages.value.flatMap { list ->
                     list.filter { it.isChecked }
                 }
                 appRepo.moveToPage(_currentPage.value, moveApps)
-                startCollect()
+
                 _isSelecting.value = false
             }
 
@@ -168,11 +171,11 @@ class HomeViewModel @Inject constructor(
 
     private fun setupInitialState() = viewModelScope.launch {
         appRepo.refreshApps()
-        startCollect()
+        subscribeAppsStream()
         _isLoading.value = false
     }
 
-    private fun startCollect() {
+    private fun subscribeAppsStream() {
         collectAppsJob?.cancel()
         collectAppsJob = appRepo.getAppsStream()
             .onEach { _appPages.value = it }

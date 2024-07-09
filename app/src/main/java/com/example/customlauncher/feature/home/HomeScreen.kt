@@ -91,6 +91,7 @@ private const val COLUMNS = 5
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
+
     LaunchedEffect(Unit) {
         viewModel.onEvent(OnInit)
     }
