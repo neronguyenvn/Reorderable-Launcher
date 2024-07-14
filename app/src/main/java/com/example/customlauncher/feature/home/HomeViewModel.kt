@@ -1,5 +1,6 @@
 package com.example.customlauncher.feature.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.customlauncher.core.data.AppRepository
@@ -28,8 +29,9 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
-private const val ITEM_POSITION_SET_DELAY = 400L
+private val ITEM_POSITION_SET_DELAY = 300.milliseconds
 
 sealed interface HomeUiState {
 
@@ -42,6 +44,7 @@ sealed interface HomeUiState {
     ) : HomeUiState
 }
 
+private const val TAG = "HomeViewModel"
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -58,11 +61,10 @@ class HomeViewModel @Inject constructor(
     private val _isSelecting = MutableStateFlow(false)
     private val _shouldShowTooltipOnLongPress = MutableStateFlow(true)
 
-    private var collectAppsJob: Job? = null
+    private var subscribeAppsStreamJob: Job? = null
     private var updateAppPositionJob: Job? = null
 
-    private var tempFrom: Int? = null
-    private var tempTo: Int? = null
+    private var moveRange: IntRange? = null
 
     val uiState = combine(
         _appPages,
@@ -92,44 +94,50 @@ class HomeViewModel @Inject constructor(
             }
 
             is OnDragMove -> viewModelScope.launch {
-                val currentPage = getCurrentPage()
-                tempFrom = tempFrom?.let { minOf(event.from, it) } ?: event.from
-                tempTo = tempTo?.let { maxOf(event.to, it) } ?: event.to
 
-                val newAppPages = appPages.toMutableList().apply {
+                val currentPage = getCurrentPage()
+
+                appPages.toMutableList().apply {
                     this[currentPage] = this[currentPage].toMutableList().apply {
                         add(event.to, removeAt(event.from))
                     }
+                }.also {
+                    _appPages.value = it
                 }
-                _appPages.value = newAppPages
 
+                moveRange = if (moveRange != null) {
+                    IntRange(
+                        minOf(event.to, event.from, moveRange!!.first),
+                        maxOf(event.to, event.from, moveRange!!.last)
+                    )
+                } else {
+                    IntRange(minOf(event.to, event.from), maxOf(event.to, event.from))
+                }
+
+                Log.d(TAG, "MoveRange: $moveRange")
                 _shouldShowTooltipOnLongPress.value = false
             }
 
             is OnDragStart -> cancelAllJobs()
 
             is OnDragStop -> {
-                if (tempFrom == null || tempTo == null) {
+                if (moveRange == null) {
                     subscribeAppsStream()
                     return
                 }
 
                 updateAppPositionJob?.cancel()
                 updateAppPositionJob = viewModelScope.launch {
+
                     delay(ITEM_POSITION_SET_DELAY)
 
-                    val start = minOf(tempFrom!!, tempTo!!)
-                    val end = maxOf(tempFrom!!, tempTo!!)
-
-                    tempFrom = null
-                    tempTo = null
-
                     appPages[getCurrentPage()].let { list ->
-                        for (i in start..end) {
+                        for (i in moveRange!!) {
                             appRepo.moveInPage(i, list[i])
                         }
                     }
 
+                    moveRange = null
                     subscribeAppsStream()
                 }
 
@@ -176,15 +184,15 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun subscribeAppsStream() {
-        collectAppsJob?.cancel()
-        collectAppsJob = appRepo.getAppsStream()
+        subscribeAppsStreamJob?.cancel()
+        subscribeAppsStreamJob = appRepo.getAppsStream()
             .onEach { _appPages.value = it }
             .launchIn(viewModelScope)
     }
 
     private fun cancelAllJobs() {
-        collectAppsJob?.cancel()
-        collectAppsJob = null
+        subscribeAppsStreamJob?.cancel()
+        subscribeAppsStreamJob = null
         updateAppPositionJob?.cancel()
         updateAppPositionJob = null
     }
