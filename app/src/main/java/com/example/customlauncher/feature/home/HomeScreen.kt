@@ -74,11 +74,11 @@ sealed interface HomeEvent {
 
     data class OnSelectChange(
         val value: Boolean,
-        val pageIndex: Int? = null,
+        val page: Int? = null,
         val index: Int? = null
     ) : HomeEvent
 
-    data class OnAppCheckChange(val isChecked: Boolean, val pageIndex: Int, val index: Int) :
+    data class OnAppCheckChange(val isChecked: Boolean, val page: Int, val index: Int) :
         HomeEvent
 
     data object OnAppMoveConfirm : HomeEvent
@@ -113,7 +113,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                 BackHandler { Unit }
 
                 val uiDataState = uiState as HomeUiState.HomeData
-                val pagerState = rememberPagerState { uiDataState.appPages.size }
+                val pagerState = rememberPagerState { uiDataState.apps.size }
 
                 LaunchedEffect(pagerState) {
                     snapshotFlow { pagerState.currentPage }.collect { page ->
@@ -161,7 +161,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                     }
                     PageIndicator(
                         index = pagerState.currentPage,
-                        count = uiDataState.appPages.size,
+                        count = uiDataState.apps.size,
                         modifier = Modifier
                             .padding(vertical = 16.dp)
                             .align(Alignment.CenterHorizontally)
@@ -198,7 +198,7 @@ private fun AppGridUi(
             }
     ) {
         homeScreenItems(
-            apps = uiState.appPages[pageIndex],
+            apps = uiState.apps[pageIndex],
             reorderableState = reorderableState,
             itemHeight = itemHeight,
             isMovingUi = uiState.isSelecting,
