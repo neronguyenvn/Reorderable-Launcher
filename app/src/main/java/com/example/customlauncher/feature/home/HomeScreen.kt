@@ -48,7 +48,7 @@ import com.example.customlauncher.feature.home.HomeEvent.OnAppMoveConfirm
 import com.example.customlauncher.feature.home.HomeEvent.OnCurrentPageChange
 import com.example.customlauncher.feature.home.HomeEvent.OnDragMove
 import com.example.customlauncher.feature.home.HomeEvent.OnInit
-import com.example.customlauncher.feature.home.HomeEvent.OnSelectingToMoveChange
+import com.example.customlauncher.feature.home.HomeEvent.OnSelectingToMove
 import com.example.customlauncher.feature.home.HomeEvent.UpdateMaxAppsPerPage
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyGridState
@@ -74,13 +74,13 @@ sealed interface HomeEvent {
 
     data class OnCurrentPageChange(val value: Int) : HomeEvent
 
-    data class OnSelectingToMoveChange(
+    data class OnSelectingToMove(
         val selectingToMove: Boolean,
         val page: Int? = null,
         val index: Int? = null
     ) : HomeEvent
 
-    data class OnAppCheckChange(
+    data class OnAppCheck(
         val checked: Boolean,
         val page: Int,
         val index: Int
@@ -127,7 +127,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                 Column(paddingModifier) {
                     AnimatedVisibility(visible = uiDataState.selectingToMove) {
                         Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                            Button(onClick = { viewModel.onEvent(OnSelectingToMoveChange(false)) }) {
+                            Button(onClick = { viewModel.onEvent(OnSelectingToMove(false)) }) {
                                 Text("Cancel")
                             }
                             Spacer(modifier = Modifier.weight(1f))
@@ -164,7 +164,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                     }
                     PageIndicator(
                         index = pagerState.currentPage,
-                        count = uiDataState.apps.size,
+                        count = pagerState.pageCount,
                         modifier = Modifier
                             .padding(vertical = 16.dp)
                             .align(Alignment.CenterHorizontally)
@@ -234,7 +234,7 @@ private fun LazyGridScope.homeScreenItems(
             AppItem(
                 app = app,
                 isUiMoving = isMovingUi,
-                pageIndex = pageIndex,
+                page = pageIndex,
                 index = index,
                 reorderableScope = this,
                 reorderableState = reorderableState,

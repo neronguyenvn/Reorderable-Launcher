@@ -132,19 +132,22 @@ class HomeViewModel @Inject constructor(
 
             is HomeEvent.OnCurrentPageChange -> _currentPage.value = event.value
 
-            is HomeEvent.OnSelectingToMoveChange -> {
+            is HomeEvent.OnSelectingToMove -> {
                 if (event.selectingToMove) {
                     editAppChecked(
                         checked = true,
                         page = event.page!!,
                         index = event.index!!,
                     )
+                    _apps.value = apps.toMutableList().apply { add(emptyList()) }
+                } else {
+                    clearLastEmptyPage()
                 }
                 _selectingToMove.value = event.selectingToMove
             }
 
 
-            is HomeEvent.OnAppCheckChange -> editAppChecked(
+            is HomeEvent.OnAppCheck -> editAppChecked(
                 checked = event.checked,
                 page = event.page,
                 index = event.index,
@@ -156,10 +159,11 @@ class HomeViewModel @Inject constructor(
                 cancelAllJobs()
 
                 val moveApps = _apps.value.flatMap { list ->
-                    list.filter { it.isChecked }
+                    list.filter { it.checked }
                 }
                 appRepo.moveToPage(_currentPage.value, moveApps)
 
+                clearLastEmptyPage()
                 subscribeAppsStream()
             }
 
@@ -196,7 +200,16 @@ class HomeViewModel @Inject constructor(
     ) {
         val newAppPages = apps.toMutableList().apply {
             this[page] = this[page].toMutableList().apply {
-                this[index] = this[index].copy(isChecked = checked)
+                this[index] = this[index].copy(checked = checked)
+            }
+        }
+        _apps.value = newAppPages
+    }
+
+    private fun clearLastEmptyPage() {
+        val newAppPages = apps.toMutableList().apply {
+            if (last().isEmpty()) {
+                removeLastOrNull()
             }
         }
         _apps.value = newAppPages

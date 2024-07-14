@@ -13,7 +13,7 @@ data class App(
     val canUninstall: Boolean,
     val packageName: String,
     val index: Int,
-    val isChecked: Boolean = false,
+    val checked: Boolean = false,
 )
 
 fun App.launch(context: Context) {

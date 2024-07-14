@@ -50,7 +50,7 @@ import com.example.customlauncher.core.model.launch
 import com.example.customlauncher.core.model.showInfo
 import com.example.customlauncher.core.model.uninstall
 import com.example.customlauncher.feature.home.HomeEvent
-import com.example.customlauncher.feature.home.HomeEvent.OnAppCheckChange
+import com.example.customlauncher.feature.home.HomeEvent.OnAppCheck
 import com.example.customlauncher.feature.home.HomeEvent.OnDragStart
 import com.example.customlauncher.feature.home.HomeEvent.OnDragStop
 import com.example.customlauncher.feature.home.HomeEvent.OnNameEditConfirm
@@ -63,7 +63,7 @@ import sh.calvin.reorderable.ReorderableLazyGridState
 fun AppItem(
     app: App,
     isUiMoving: Boolean,
-    pageIndex: Int,
+    page: Int,
     index: Int,
     reorderableScope: ReorderableCollectionItemScope,
     reorderableState: ReorderableLazyGridState,
@@ -90,21 +90,21 @@ fun AppItem(
             TooltipBoxUi(
                 app = app,
                 showEditNameDialog = { showEditNameDialog = true },
-                changeToMovingUi = {
+                dismissTooltip = { tooltipState.dismiss() },
+                selectToMove = {
                     onEvent(
-                        HomeEvent.OnSelectingToMoveChange(
-                            true,
-                            pageIndex,
-                            index
+                        HomeEvent.OnSelectingToMove(
+                            selectingToMove = true,
+                            page = page,
+                            index = index
                         )
                     )
                 },
-                cancelSelected = { tooltipState.dismiss() }
             )
         }) {
         AppItemUi(
             app = app,
-            isUiMoving = isUiMoving,
+            selectingToMove = isUiMoving,
             modifier = with(reorderableScope) {
                 modifier
                     .fillMaxSize()
@@ -112,10 +112,10 @@ fun AppItem(
                         ifTrue = {
                             clickable {
                                 onEvent(
-                                    OnAppCheckChange(
-                                        !app.isChecked,
-                                        pageIndex,
-                                        index
+                                    OnAppCheck(
+                                        checked = !app.checked,
+                                        page = page,
+                                        index = index
                                     )
                                 )
                             }
@@ -135,7 +135,7 @@ fun AppItem(
                     )
             }
         ) {
-            onEvent(OnAppCheckChange(it, pageIndex, index))
+            onEvent(OnAppCheck(it, page, index))
         }
     }
 
@@ -152,7 +152,7 @@ fun AppItem(
 @Composable
 private fun AppItemUi(
     app: App,
-    isUiMoving: Boolean,
+    selectingToMove: Boolean,
     modifier: Modifier = Modifier,
     onItemSelect: (Boolean) -> Unit
 ) {
@@ -168,12 +168,10 @@ private fun AppItemUi(
     ) {
         BadgedBox(
             badge = {
-                when {
-                    isUiMoving -> Checkbox(
-                        checked = app.isChecked,
-                        onCheckedChange = { onItemSelect(it) }
-                    )
-                }
+                if (selectingToMove) Checkbox(
+                    checked = app.checked,
+                    onCheckedChange = { onItemSelect(it) }
+                )
             },
         ) {
             AsyncImage(
@@ -196,8 +194,8 @@ private fun AppItemUi(
 private fun TooltipBoxUi(
     app: App,
     showEditNameDialog: () -> Unit,
-    changeToMovingUi: () -> Unit,
-    cancelSelected: () -> Unit
+    selectToMove: () -> Unit,
+    dismissTooltip: () -> Unit
 ) {
     val context = LocalContext.current
     Column(
@@ -212,18 +210,18 @@ private fun TooltipBoxUi(
         HorizontalDivider()
         TooltipMenuItem(tooltipMenu = TooltipMenu.AppInfo) {
             app.showInfo(context)
-            cancelSelected()
+            dismissTooltip()
         }
         HorizontalDivider()
         TooltipMenuItem(tooltipMenu = TooltipMenu.Move) {
-            changeToMovingUi()
-            cancelSelected()
+            selectToMove()
+            dismissTooltip()
         }
         if (app.canUninstall) {
             HorizontalDivider()
             TooltipMenuItem(tooltipMenu = TooltipMenu.Uninstall) {
                 app.uninstall(context)
-                cancelSelected()
+                dismissTooltip()
             }
         }
     }
