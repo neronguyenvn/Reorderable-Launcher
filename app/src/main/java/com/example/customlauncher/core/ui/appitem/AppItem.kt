@@ -92,7 +92,7 @@ fun AppItem(
                 showEditNameDialog = { showEditNameDialog = true },
                 changeToMovingUi = {
                     onEvent(
-                        HomeEvent.OnSelectChange(
+                        HomeEvent.OnSelectingToMoveChange(
                             true,
                             pageIndex,
                             index

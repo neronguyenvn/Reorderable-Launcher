@@ -27,7 +27,7 @@ sealed interface HomeUiState {
 
     data class HomeData(
         val apps: List<List<App>> = emptyList(),
-        val isSelecting: Boolean = false,
+        val selectingToMove: Boolean = false,
         val shouldShowTooltipOnLongPress: Boolean = true
     ) : HomeUiState
 }
@@ -44,7 +44,7 @@ class HomeViewModel @Inject constructor(
     private suspend fun getCurrentPage() = _currentPage.first()
 
     private val _isLoading = MutableStateFlow(true)
-    private val _isSelecting = MutableStateFlow(false)
+    private val _selectingToMove = MutableStateFlow(false)
     private val _shouldShowTooltipOnLongPress = MutableStateFlow(true)
 
     private var subscribeAppsStreamJob: Job? = null
@@ -55,7 +55,7 @@ class HomeViewModel @Inject constructor(
     val uiState = combine(
         _apps,
         _isLoading,
-        _isSelecting,
+        _selectingToMove,
         _shouldShowTooltipOnLongPress
     ) { apps, loading, selecting, should ->
         if (loading) {
@@ -63,7 +63,7 @@ class HomeViewModel @Inject constructor(
         }
         HomeUiState.HomeData(
             apps = apps,
-            isSelecting = selecting,
+            selectingToMove = selecting,
             shouldShowTooltipOnLongPress = should
         )
     }.stateIn(
@@ -132,33 +132,35 @@ class HomeViewModel @Inject constructor(
 
             is HomeEvent.OnCurrentPageChange -> _currentPage.value = event.value
 
-            is HomeEvent.OnSelectChange -> {
-                if (event.value) {
+            is HomeEvent.OnSelectingToMoveChange -> {
+                if (event.selectingToMove) {
                     editAppChecked(
                         checked = true,
                         page = event.page!!,
                         index = event.index!!,
                     )
                 }
-                _isSelecting.value = event.value
+                _selectingToMove.value = event.selectingToMove
             }
 
 
             is HomeEvent.OnAppCheckChange -> editAppChecked(
-                checked = event.isChecked,
+                checked = event.checked,
                 page = event.page,
                 index = event.index,
             )
 
             is HomeEvent.OnAppMoveConfirm -> viewModelScope.launch {
-                subscribeAppsStream()
+
+                _selectingToMove.value = false
+                cancelAllJobs()
 
                 val moveApps = _apps.value.flatMap { list ->
                     list.filter { it.isChecked }
                 }
                 appRepo.moveToPage(_currentPage.value, moveApps)
 
-                _isSelecting.value = false
+                subscribeAppsStream()
             }
 
             is HomeEvent.UpdateMaxAppsPerPage -> viewModelScope.launch {

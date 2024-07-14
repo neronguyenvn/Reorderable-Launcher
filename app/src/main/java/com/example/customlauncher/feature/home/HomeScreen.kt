@@ -48,12 +48,14 @@ import com.example.customlauncher.feature.home.HomeEvent.OnAppMoveConfirm
 import com.example.customlauncher.feature.home.HomeEvent.OnCurrentPageChange
 import com.example.customlauncher.feature.home.HomeEvent.OnDragMove
 import com.example.customlauncher.feature.home.HomeEvent.OnInit
-import com.example.customlauncher.feature.home.HomeEvent.OnSelectChange
+import com.example.customlauncher.feature.home.HomeEvent.OnSelectingToMoveChange
 import com.example.customlauncher.feature.home.HomeEvent.UpdateMaxAppsPerPage
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyGridState
 import sh.calvin.reorderable.rememberReorderableLazyGridState
 import kotlin.math.roundToInt
+
+private const val COLUMNS = 5
 
 sealed interface HomeEvent {
 
@@ -72,21 +74,22 @@ sealed interface HomeEvent {
 
     data class OnCurrentPageChange(val value: Int) : HomeEvent
 
-    data class OnSelectChange(
-        val value: Boolean,
+    data class OnSelectingToMoveChange(
+        val selectingToMove: Boolean,
         val page: Int? = null,
         val index: Int? = null
     ) : HomeEvent
 
-    data class OnAppCheckChange(val isChecked: Boolean, val page: Int, val index: Int) :
-        HomeEvent
+    data class OnAppCheckChange(
+        val checked: Boolean,
+        val page: Int,
+        val index: Int
+    ) : HomeEvent
 
     data object OnAppMoveConfirm : HomeEvent
 
     data class UpdateMaxAppsPerPage(val count: Int) : HomeEvent
 }
-
-private const val COLUMNS = 5
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -122,9 +125,9 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                 }
 
                 Column(paddingModifier) {
-                    AnimatedVisibility(visible = uiDataState.isSelecting) {
+                    AnimatedVisibility(visible = uiDataState.selectingToMove) {
                         Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                            Button(onClick = { viewModel.onEvent(OnSelectChange(false)) }) {
+                            Button(onClick = { viewModel.onEvent(OnSelectingToMoveChange(false)) }) {
                                 Text("Cancel")
                             }
                             Spacer(modifier = Modifier.weight(1f))
@@ -201,7 +204,7 @@ private fun AppGridUi(
             apps = uiState.apps[pageIndex],
             reorderableState = reorderableState,
             itemHeight = itemHeight,
-            isMovingUi = uiState.isSelecting,
+            isMovingUi = uiState.selectingToMove,
             pageIndex = pageIndex,
             showTooltip = showTooltip,
             onEvent = onEvent
