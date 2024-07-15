@@ -9,11 +9,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.customlauncher"
+    namespace = "com.neronguyenvn.reorderablelauncher"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.customlauncher"
+        applicationId = "com.neronguyenvn.reorderablelauncher"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

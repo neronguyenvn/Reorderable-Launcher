@@ -1,4 +1,3 @@
 <resources>
-    <string name="app_name">CustomLauncher</string>
-    <string name="mining">Mining</string>
+    <string name="app_name">Reorderable Launcher</string>
 </resources>
