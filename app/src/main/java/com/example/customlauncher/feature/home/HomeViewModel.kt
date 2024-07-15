@@ -163,7 +163,6 @@ class HomeViewModel @Inject constructor(
                 }
                 appRepo.moveToPage(_currentPage.value, moveApps)
 
-                clearLastEmptyPage()
                 subscribeAppsStream()
             }
 

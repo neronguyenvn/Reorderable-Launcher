@@ -93,13 +93,14 @@ class OfflineFirstAppRepository @Inject constructor(
     override suspend fun moveToPage(toPage: Int, apps: List<App>) {
         val tempMap = getAppTempMap(appDao.getAll())
         val remainingPageSpace = maxAppsPerPage.first() - (tempMap[toPage]?.size ?: 0)
-        var latestIndex = tempMap[toPage]?.lastIndex ?: 0
+        var latestIndex = tempMap[toPage]?.lastIndex ?: -1
         apps.take(remainingPageSpace).forEach { app ->
             appDao.updatePageAndIndexByPackageName(
                 toPage, ++latestIndex,
                 app.packageName
             )
         }
+        removeEmptyPagesAndReindex()
     }
 
     override suspend fun updateMaxAppsPerPage(count: Int) {
@@ -150,5 +151,22 @@ class OfflineFirstAppRepository @Inject constructor(
             tempMap[page] = mutableListOf(packageName)
         }
         return tempMap[page]!!.lastIndex
+    }
+
+    private suspend fun removeEmptyPagesAndReindex() {
+        val tempMap = getAppTempMap(appDao.getAll())
+        val nonEmptyPages = tempMap.filter { it.value.isNotEmpty() }
+
+        var newPageIndex = 0
+        nonEmptyPages.forEach { (_, apps) ->
+            apps.forEachIndexed { index, app ->
+                appDao.updatePageAndIndexByPackageName(
+                    toPage = newPageIndex,
+                    toIndex = index,
+                    packageName = app
+                )
+            }
+            newPageIndex++
+        }
     }
 }
