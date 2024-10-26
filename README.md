@@ -2,7 +2,7 @@
 
 **Reorderable Launcher** is a streamlined and intuitive launcher application crafted using
 **[Kotlin](https://github.com/JetBrains/kotlin)** and
-**[Jetpack Compose](https://developer.android.com/jetpack/compose)** Designed for ease of use, it
+**[Jetpack Compose](https://developer.android.com/jetpack/compose)**. Designed for ease of use, it
 intelligently arranges new apps to fill the available spaces on each page, ensuring a clean and
 organized home screen.
 
