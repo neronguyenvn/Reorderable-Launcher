@@ -12,9 +12,11 @@ I started this project at my company's request to integrate user apps and other 
 as the WebView team already handles the home feature for both Android and iOS. I decided to continue
 the project on my own, focusing on Jetpack Compose, Pager, and PointerInput.
 
-Overcoming the challenge of positioning new and moved apps, the launcher now dynamically reflects
-changes from RoomDB, updates app positions in UI layer and in Data layer asynchronously. The goal is
-to preload the pager to preload the main page as well as the adjacent pages.
+## 🌌 Progress & Next Steps
+
+Milestone 1: Successfully tackled the dynamic positioning of new and moved apps, allowing the launcher to reflect changes from RoomDB and adjust app positions across both the UI and data layers asynchronously.
+
+Next Goal: Streamline state and data updates in the ViewModel to make them more reactive, eliminating the need to manually stop and restart Flow collections.
 
 ## 🛠️ Technologies
 
